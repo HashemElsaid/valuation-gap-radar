@@ -32,9 +32,11 @@ st.set_page_config(page_title="Valuation Gap Radar", page_icon=":material/radar:
 # kept for highlights only, because as a line or dot on white it can't be seen.
 COLORS = {
     "light": {"comps": "#2a78d6", "deal": "#eb6834", "surface": "#ffffff", "band": 0.2,
-              "ink": "#0e0d0d", "muted": "#6e6e6e", "bad": "#a82828"},
+              "ink": "#0e0d0d", "muted": "#6e6e6e", "bad": "#a82828",
+              "buyer": "#4a4646", "buyer_ink": "#ffffff"},
     "dark": {"comps": "#3987e5", "deal": "#d95926", "surface": "#0e0d0d", "band": 0.4,
-             "ink": "#f4f4f4", "muted": "#9f9e9e", "bad": "#ff8a8a"},
+             "ink": "#f4f4f4", "muted": "#9f9e9e", "bad": "#ff8a8a",
+             "buyer": "#cfcfcf", "buyer_ink": "#0e0d0d"},
 }
 # Sooner's lime highlighter. Text on it is always near-black, as on joinsooner.com,
 # so it stays readable in dark mode too.
@@ -141,9 +143,10 @@ def home_label(property_type: str, bedrooms: int) -> str:
     return f"Studio {kind}" if bedrooms == 0 else f"{bedrooms}-bed {kind}"
 
 
-def how_it_works(steps: list[tuple[str, str, str]]) -> None:
-    """A row of numbered steps that explains the page in a few seconds."""
+def page_intro(why: str, steps: list[tuple[str, str, str]]) -> None:
+    """Why the page matters to Sooner, then numbered steps explaining how to use it."""
     with st.container(border=True):
+        st.markdown(f":material/lightbulb: **Why this matters**  \n{why}")
         for column, (icon, title, text) in zip(st.columns(len(steps)), steps):
             column.markdown(f"{icon} **{title}**")
             column.caption(text)
@@ -246,14 +249,20 @@ def settings_inputs() -> dict:
 
 def show_deal(sales: pd.DataFrame, d: dict, settings: dict) -> None:
     st.markdown(f"## Will the bank value this home {highlight('below the price')}?", unsafe_allow_html=True)
-    how_it_works([
+    page_intro(
+        "Sooner pays the buyer's fees, **not the down payment**. If the bank values the home below the price, "
+        "the bank lends less and the buyer must cover the gap from their own cash. Sooner's buyers rarely have "
+        "that cash spare, so the deal can fail: the buyer can lose their Form F deposit, and Sooner loses the "
+        "deal. This check spots the risk **before** the Form F is signed, while there's still time to fix it.",
+        [
         (":material/edit_note:", "1. Describe the deal", "Fill in the home, the price and the buyer's cash "
                                                          "in the panel on the left."),
         (":material/query_stats:", "2. We compare similar sales", "Real DLD sales of similar homes show what "
                                                                   "a bank valuer is likely to say."),
         (":material/account_balance_wallet:", "3. See the cash at stake", "A low valuation means a smaller loan. "
                                                                          "We show how much more cash the buyer needs."),
-    ])
+        ],
+    )
 
     building = d["project"] or "Any building"
     st.subheader(f"{home_label(d['property_type'], d['bedrooms'])} in {d['area']}")
@@ -279,6 +288,7 @@ def show_deal(sales: pd.DataFrame, d: dict, settings: dict) -> None:
                         estimate=est, risk=risk, scenarios=scenarios, include_actions=False)
 
     verdict_card(d, est, risk, scenarios)
+    who_pays(d, est, settings)
     left, right = st.columns([3, 2])
     with left:
         text_card("In plain words", ":material/chat:", note)
@@ -342,6 +352,75 @@ def verdict_card(d: dict, est, risk, scenarios: pd.DataFrame) -> None:
                + f". We call {config.MEDIUM_RISK_FROM:.0%} or more Medium and {config.HIGH_RISK_FROM:.0%} "
                  "or more High.")
         st.caption(why)
+
+
+def who_pays(d: dict, est, settings: dict) -> None:
+    """Who pays what, if the bank agrees with the price and if it values low.
+
+    This is the heart of the problem: Sooner covers the fees, but a low
+    valuation grows the buyer's own part, which Sooner can't cover.
+    """
+    split = scenario_table(
+        d["price"],
+        {"If the bank agrees with the price": d["price"],
+         f"If the bank values low ({aed_short(est.value_p25)})": est.value_p25},
+        d["cash_available"], **settings,
+    )
+    agree, low = split.iloc[0], split.iloc[1]
+    extra = low["cash_needed"] - agree["cash_needed"]
+
+    with st.container(border=True):
+        st.markdown(":material/account_balance: **Who pays for this home**")
+        st.altair_chart(who_pays_chart(split, d["cash_available"], colors()), width="stretch")
+        text = (f"The bank lends {settings['ltv']:.0%} of the lower of the price and its valuation. The buyer pays "
+                "the rest from their own cash, and Sooner pays the fees on top. ")
+        if extra > 0:
+            text += (f"If the bank values low, its loan shrinks and **the buyer's part grows by {aed(extra)}**. "
+                     "Sooner can't cover that part.")
+        else:
+            text += "Even at the low end of the likely range, the valuation is at or above the price, so the buyer's part doesn't grow."
+        if low["shortfall"] > 0:
+            deposit = config.FORM_F_DEPOSIT_SHARE * d["price"]
+            text += (f" This buyer would be **{aed(low['shortfall'])} short**. If they can't find it, the deal can "
+                     f"fail and they could lose their Form F deposit (usually "
+                     f"{config.FORM_F_DEPOSIT_SHARE:.0%}: about {aed_round(deposit)}).")
+        st.markdown(text)
+
+
+def who_pays_chart(split: pd.DataFrame, cash: float, c: dict) -> alt.Chart:
+    """One bar per scenario: the bank's loan, the buyer's own cash, any shortfall, and Sooner's fees."""
+    parts = ["Bank loan", "Buyer's own cash", "Buyer is short", "Fees paid by Sooner"]
+    fills = [c["comps"], c["buyer"], "#d03b3b", "#e9fe0f"]
+    inks = ["#ffffff", c["buyer_ink"], "#ffffff", "#0e0d0d"]  # label colour on each fill
+    rows = []
+    for _, s in split.iterrows():
+        amounts = [s["loan"], min(s["cash_needed"], cash), s["shortfall"], s["sooner_support"]]
+        start = 0.0
+        for part, amount, ink in zip(parts, amounts, inks):
+            rows.append({"scenario": s["name"], "part": part, "start": start, "end": start + amount,
+                         "mid": start + amount / 2, "amount": amount, "label": aed_short(amount), "ink": ink})
+            start += amount
+    data = pd.DataFrame(rows)
+    data = data[data["amount"] > 0]
+    total = data["end"].max()
+    x_scale = alt.Scale(domain=[0, total])
+    y = alt.Y("scenario:N", sort=split["name"].tolist(), title=None,
+              axis=alt.Axis(labelLimit=320, labelFontSize=13, ticks=False, domain=False,
+                            labelPadding=10, labelColor=c["ink"]))
+
+    bars = alt.Chart(data).mark_bar(size=24, cornerRadius=3, stroke=c["surface"], strokeWidth=2).encode(
+        y=y, x=alt.X("start:Q", scale=x_scale, axis=None), x2="end:Q",
+        color=alt.Color("part:N", scale=alt.Scale(domain=parts, range=fills),
+                        legend=alt.Legend(orient="top", title=None, labelColor=c["ink"], symbolType="square")),
+        tooltip=[alt.Tooltip("scenario:N", title="Scenario"), alt.Tooltip("part:N", title="Part"),
+                 alt.Tooltip("amount:Q", title="AED", format=",.0f")],
+    )
+    # Write the amount inside a segment only when it's wide enough to hold it.
+    labels = alt.Chart(data[data["amount"] / total > 0.08]).mark_text(fontSize=11, fontWeight=600).encode(
+        y=y, x=alt.X("mid:Q", scale=x_scale, axis=None), text="label:N", color=alt.Color("ink:N", scale=None),
+    )
+    # A fixed height per row (not for the whole chart) keeps the two bars apart.
+    return alt.layer(bars, labels).properties(height=alt.Step(46)).configure_view(stroke=None)
 
 
 def next_steps(est, risk, scenarios: pd.DataFrame) -> list[str]:
@@ -588,12 +667,17 @@ REPORT_FORMATS = {
 
 def show_batch(sales: pd.DataFrame, settings: dict) -> None:
     st.markdown(f"## Check {highlight('many deals')} at once", unsafe_allow_html=True)
-    how_it_works([
-        (":material/download:", "1. Get the template", "Download the example file below and see the columns."),
-        (":material/table_edit:", "2. One row per deal", "Fill it in, or export your pipeline from the CRM "
-                                                        "with the same columns."),
-        (":material/upload_file:", "3. Upload it", "Every deal is checked, and the riskiest come first."),
-    ])
+    page_intro(
+        "Every deal where the buyer would be short of cash could fail at the bank valuation: Sooner loses the "
+        "deal and the buyer can lose their deposit. This list shows which deals to act on first, **before** "
+        "their Form F is signed.",
+        [
+            (":material/download:", "1. Get the template", "Download the example file below and see the columns."),
+            (":material/table_edit:", "2. One row per deal", "Fill it in, or export your pipeline from the CRM "
+                                                            "with the same columns."),
+            (":material/upload_file:", "3. Upload it", "Every deal is checked, and the riskiest come first."),
+        ],
+    )
 
     with st.container(border=True):
         left, right = st.columns([3, 1], vertical_alignment="center")
@@ -616,20 +700,21 @@ def show_batch(sales: pd.DataFrame, settings: dict) -> None:
         report = assess_deals(sales, deals, **settings)
     assessed = report[report["risk"] != "Unknown"]
 
-    # Summary
-    short = assessed[assessed["short_median"] > 0]
+    # Summary: what's at stake for Sooner and its buyers
     short_low = assessed[assessed["short_p25"] > 0]
+    deposits = config.FORM_F_DEPOSIT_SHARE * short_low["price"].sum()
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Deals checked", len(report), border=True, icon=":material/fact_check:")
     c1.caption(f"{len(assessed)} assessed, {len(report) - len(assessed)} couldn't be (see Notes)")
     c2.metric("High risk", int((report["risk"] == "High").sum()), border=True, icon=":material/error:")
     c2.caption(f"Plus {int((report['risk'] == 'Medium').sum())} at Medium risk")
-    c3.metric("Short if typical", len(short), border=True, icon=":material/account_balance_wallet:",
-              help="Buyers who would lack cash if the bank values at the typical estimate.")
-    c3.caption(f"{aed(short['short_median'].sum())} short in total")
-    c4.metric("Short if low", len(short_low), border=True, icon=":material/trending_down:",
-              help="Buyers who would lack cash if the bank values at the low end of the range.")
-    c4.caption(f"{aed(short_low['short_p25'].sum())} short in total")
+    c3.metric("Could fail if valued low", len(short_low), border=True, icon=":material/trending_down:",
+              help="Deals where the buyer would be short of cash if the bank values at the low end of the range.")
+    c3.caption(f"Buyers {aed(short_low['short_p25'].sum())} short in total")
+    c4.metric("Deposits at risk", aed_short(deposits), border=True, icon=":material/savings:",
+              help=f"The Form F deposits (usually {config.FORM_F_DEPOSIT_SHARE:.0%} of the price) of the buyers "
+                   "in those deals. If a deal fails, the buyer can lose it.")
+    c4.caption(f"{config.FORM_F_DEPOSIT_SHARE:.0%} deposits across those {len(short_low)} deals")
 
     # Report, riskiest first
     st.subheader("Every deal, riskiest first")

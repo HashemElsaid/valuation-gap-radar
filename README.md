@@ -35,11 +35,13 @@ cash is at stake?
 
 ## What it does
 
-The app is written so anyone can follow it. It uses everyday words ("likely
-bank valuation", "buyer would be short by", "how sure we are") rather than
-P25 or LTV, each page opens with a three-step "how this works" strip, every
-input and number has a help tooltip, and a glossary at the bottom explains the
-terms.
+The app is written so anyone can follow it, including why it matters to the
+business. Each page opens with **"Why this matters"** (Sooner pays the fees,
+not the down payment, so a low valuation lands on the buyer and can sink the
+deal) and a three-step "how this works" strip. It uses everyday words ("likely
+bank valuation", "buyer would be short by", "how sure we are") rather than P25
+or LTV, every input and number has a help tooltip, and a glossary at the bottom
+explains the terms.
 
 **One deal.** Enter the home (area, type, bedrooms, building, size) and the
 deal (agreed price, buyer's cash). The page leads with the answer:
@@ -48,6 +50,10 @@ deal (agreed price, buyer's cash). The page leads with the answer:
   own colour and icon), a one-line headline, the estimate in a sentence, a bar
   showing where the agreed price sits against the likely valuation range, four
   key numbers, and a line saying why it's that risk level
+- **Who pays for this home**: one bar for "the bank agrees with the price" and
+  one for "the bank values low", each split into the bank's loan, the buyer's own
+  cash, any shortfall (in red) and the fees Sooner pays. It shows the buyer's
+  part growing when the valuation drops, and the Form F deposit at stake
 - **In plain words**: the advisor note, for example: *"Similar 1-bed apartments
   in Jumeirah Village Circle typically sold for AED 1,220 per sqft in the last
   90 days (363 sales). This price works out to AED 1,333 per sqft, 9% above
@@ -70,7 +76,9 @@ checked at once, riskiest first, with a downloadable report.
 ![Many deals: summary tiles, every deal sorted by risk, and the message for one deal](docs/screenshots/pipeline.png)
 
 In the example pipeline, 9 of the 10 assessable buyers would be short of cash
-if the bank valued low (P25), including some Low-risk deals. Buyers who hold only
+if the bank valued low (P25), including some Low-risk deals, putting about
+**AED 2.05M of Form F deposits** at risk (the page's "Deposits at risk" tile,
+assuming the usual 10% deposit). Buyers who hold only
 the 20% down payment have no buffer for even a small gap.
 
 ## How it works
@@ -164,6 +172,7 @@ changed in the app's Assumptions panel.
 | Sooner repayment | 60 months, 7–9% flat yearly fee (8% default) |
 | "Property value" for the 10% limit | Agreed price (switchable to valuation) |
 | Loan-to-value | 80% (expat, first home under AED 5M) |
+| Form F deposit | 10% of the price (usual in Dubai), used for "deposits at risk" |
 | Dubai Land Department | 4% of price + AED 580 |
 | DLD title deed | AED 250 |
 | Agency commission | 2% of price + VAT |

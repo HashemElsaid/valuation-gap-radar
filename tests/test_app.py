@@ -27,7 +27,10 @@ def test_one_deal_page_shows_a_verdict():
     at = run_app()
 
     assert not at.exception
-    assert "We estimate the bank will value it at about" in page_text(at)
+    text = page_text(at)
+    assert "Why this matters" in text  # the business reason, up front
+    assert "We estimate the bank will value it at about" in text
+    assert "Who pays for this home" in text
     assert len(at.tabs) == 3
 
 
@@ -54,3 +57,4 @@ def test_pipeline_mode_reports_every_example_deal():
 
     assert not at.exception
     assert at.metric[0].value == "12"  # Deals checked
+    assert at.metric[3].label == "Deposits at risk"

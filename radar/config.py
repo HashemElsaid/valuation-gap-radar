@@ -39,10 +39,14 @@ SOONER_FEE_DEFAULT = 0.08
 SOONER_VALUE_BASIS_DEFAULT = "price"  # "price" or "valuation"
 
 # ---------------------------------------------------------------------------
-# Mortgage
+# Mortgage and contract
 # ---------------------------------------------------------------------------
 # UAE Central Bank cap for an expat's first home under AED 5M.
 DEFAULT_LTV = 0.80
+
+# The deposit a buyer pays when signing the Form F (usually 10% in Dubai). They
+# can lose it if they can't complete, e.g. after a low valuation.
+FORM_F_DEPOSIT_SHARE = 0.10
 
 # ---------------------------------------------------------------------------
 # Closing costs: the fee lines on Sooner's calculator (joinsooner.com).
