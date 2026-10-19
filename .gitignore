@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Data
+# The raw DLD download is large and stays on your machine.
+data/raw/*
+!data/raw/.gitkeep
+# The full processed file is rebuilt by the ETL. Only data/sample/ is committed.
+data/processed/
+
+# Streamlit secrets (none yet, but never commit them)
+.streamlit/secrets.toml
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

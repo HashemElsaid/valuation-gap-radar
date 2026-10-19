@@ -1,0 +1,5 @@
+# Only tool settings live here; dependencies are in requirements*.txt.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]  # lets tests `import radar` without installing the package
