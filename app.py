@@ -4,8 +4,9 @@ Run it from the project root:
 
     streamlit run app.py
 
-The deal goes in the sidebar; results fill the main area. All the maths lives
-in the radar/ package. This file only collects inputs and shows results.
+Two modes, picked at the top of the sidebar: check one deal, or upload a
+pipeline CSV and check every deal in it. All the maths lives in the radar/
+package. This file only collects inputs and shows results.
 The app shows sizes and prices per sqft, as Dubai listings do; the engine
 works in sqm, so the conversion happens here at the edge.
 """
@@ -16,6 +17,7 @@ import streamlit as st
 
 from radar import config
 from radar.advisor import advisor_note, aed, describe_home, per_sqft
+from radar.batch import REQUIRED_COLUMNS, assess_deals, read_deals
 from radar.cash import check_eligibility, closing_costs, loan_amount, scenario_table
 from radar.comps import estimate_value, find_comps, gap_risk
 from radar.etl import load_sales
@@ -93,14 +95,6 @@ def deal_inputs(sales: pd.DataFrame) -> dict:
     price = sb.number_input("Agreed price (AED)", min_value=100_000, value=1_000_000, step=10_000)
     cash = sb.number_input("Cash the buyer has available (AED)", min_value=0, value=250_000, step=5_000)
 
-    with sb.expander("Settings"):
-        ltv = st.slider("Loan-to-value (%)", 50, 85, round(config.DEFAULT_LTV * 100), 5)
-        # round() because 0.07 * 100 is 7.000000000000001 in floating point
-        fee = st.slider("Sooner yearly fee (%)", round(config.SOONER_FEE_MIN * 100, 1),
-                        round(config.SOONER_FEE_MAX * 100, 1), round(config.SOONER_FEE_DEFAULT * 100, 1), 0.5)
-        value_basis = st.radio("Sooner's 10% limit is based on", ["price", "valuation"],
-                               format_func=str.capitalize, help="Still to be confirmed with Sooner.")
-
     return {
         "area": area,
         "property_type": property_type,
@@ -109,17 +103,26 @@ def deal_inputs(sales: pd.DataFrame) -> dict:
         "size_sqm": size_sqft / config.SQFT_PER_SQM,
         "price": float(price),
         "cash_available": float(cash),
-        "ltv": ltv / 100,
-        "fee_rate": fee / 100,
-        "value_basis": value_basis,
     }
+
+
+def settings_inputs() -> dict:
+    """Sidebar: the assumptions that apply to every deal, in both modes."""
+    with st.sidebar.expander("Settings"):
+        ltv = st.slider("Loan-to-value (%)", 50, 85, round(config.DEFAULT_LTV * 100), 5)
+        # round() because 0.07 * 100 is 7.000000000000001 in floating point
+        fee = st.slider("Sooner yearly fee (%)", round(config.SOONER_FEE_MIN * 100, 1),
+                        round(config.SOONER_FEE_MAX * 100, 1), round(config.SOONER_FEE_DEFAULT * 100, 1), 0.5)
+        value_basis = st.radio("Sooner's 10% limit is based on", ["price", "valuation"],
+                               format_func=str.capitalize, help="Still to be confirmed with Sooner.")
+    return {"ltv": ltv / 100, "fee_rate": fee / 100, "value_basis": value_basis}
 
 
 # ---------------------------------------------------------------------------
 # Results
 # ---------------------------------------------------------------------------
 
-def show_deal(sales: pd.DataFrame, d: dict) -> None:
+def show_deal(sales: pd.DataFrame, d: dict, settings: dict) -> None:
     issue = check_eligibility(d["price"])
     if issue:
         st.warning(f"{issue}, so this deal isn't eligible for Sooner. The estimate below still applies.")
@@ -138,8 +141,7 @@ def show_deal(sales: pd.DataFrame, d: dict) -> None:
         return
 
     risk = gap_risk(d["price"], est)
-    scenarios = scenario_table(d["price"], est.valuations, d["cash_available"],
-                               ltv=d["ltv"], fee_rate=d["fee_rate"], value_basis=d["value_basis"])
+    scenarios = scenario_table(d["price"], est.valuations, d["cash_available"], **settings)
 
     # Headline and advisor note
     box, icon = RISK_BOX[risk.level]
@@ -171,12 +173,12 @@ def show_deal(sales: pd.DataFrame, d: dict) -> None:
     table = table.rename(columns=SCENARIO_NAMES)
     st.table(table.style.format("AED {:,.0f}"))
     st.caption(
-        f"Loan = {d['ltv']:.0%} of the lower of price and valuation. Sooner pays closing costs up to "
-        f"{config.SOONER_MAX_SHARE:.0%} of the {d['value_basis']} (max {aed(config.SOONER_CAP_AED)}), repaid over "
-        f"{config.SOONER_TERM_MONTHS} months with a flat yearly fee of {d['fee_rate']:.1%}."
+        f"Loan = {settings['ltv']:.0%} of the lower of price and valuation. Sooner pays closing costs up to "
+        f"{config.SOONER_MAX_SHARE:.0%} of the {settings['value_basis']} (max {aed(config.SOONER_CAP_AED)}), "
+        f"repaid over {config.SOONER_TERM_MONTHS} months with a flat yearly fee of {settings['fee_rate']:.1%}."
     )
     with st.expander("Closing cost lines (if the bank values the home at the price)"):
-        costs = closing_costs(d["price"], loan_amount(d["price"], d["price"], d["ltv"]))
+        costs = closing_costs(d["price"], loan_amount(d["price"], d["price"], settings["ltv"]))
         lines = pd.Series(costs, name="AED").to_frame()
         lines.loc["Total"] = sum(costs.values())
         st.table(lines.style.format("AED {:,.0f}"))
@@ -263,6 +265,81 @@ def comps_table(comps: pd.DataFrame) -> None:
         })
 
 
+# ---------------------------------------------------------------------------
+# Pipeline (batch) mode
+# ---------------------------------------------------------------------------
+
+REPORT_VIEW = {
+    "deal_id": "Deal",
+    "risk": "Risk",
+    "area": "Area",
+    "building": "Building",
+    "property_type": "Type",
+    "bedrooms": st.column_config.NumberColumn("Beds", format="%d"),
+    "price": st.column_config.NumberColumn("Price (AED)", format="localized"),
+    "estimate": st.column_config.NumberColumn("Estimate (AED)", format="localized"),
+    "price_vs_estimate": st.column_config.NumberColumn("vs estimate", format="percent"),
+    "confidence": "Confidence",
+    "extra_cash_median": st.column_config.NumberColumn("Extra cash at median", format="localized"),
+    "short_median": st.column_config.NumberColumn("Short at median", format="localized"),
+    "short_p25": st.column_config.NumberColumn("Short at P25", format="localized"),
+    "notes": "Notes",
+}
+
+MONEY_COLUMNS = ["price", "estimate", "extra_cash_median", "short_median", "short_p25"]
+
+
+def show_batch(sales: pd.DataFrame, settings: dict) -> None:
+    st.subheader("Check a pipeline of deals")
+    st.caption(f"One deal per row. Columns: {', '.join(REQUIRED_COLUMNS)}, and optionally building. "
+               "Sizes in sqft; bedrooms can be 'studio'. Area shorthands like JVC, JLT and Marina work.")
+    left, right = st.columns([3, 1], vertical_alignment="bottom")
+    upload = left.file_uploader("Pipeline CSV", type="csv")
+    right.download_button("Example CSV", config.EXAMPLE_PIPELINE_PATH.read_bytes(),
+                          file_name="pipeline_example.csv", mime="text/csv", icon=":material/download:")
+    if upload is None:
+        st.info("No file uploaded yet, so this is the example pipeline.", icon=":material/info:")
+
+    try:
+        deals = read_deals(upload or config.EXAMPLE_PIPELINE_PATH)
+    except ValueError as error:  # also covers unreadable files: pandas' parse errors are ValueErrors
+        st.error(f"Couldn't read the CSV. {error}", icon=":material/error:")
+        return
+    with st.spinner(f"Checking {len(deals):,} deals..."):
+        report = assess_deals(sales, deals, **settings)
+    assessed = report[report["risk"] != "Unknown"]
+
+    # Summary
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Deals", len(report), border=True)
+    c1.caption(f"{len(assessed)} assessed, {len(report) - len(assessed)} couldn't be")
+    c2.metric("High risk", int((report["risk"] == "High").sum()), border=True)
+    c2.caption(f"{int((report['risk'] == 'Medium').sum())} more at Medium risk")
+    short = assessed[assessed["short_median"] > 0]
+    c3.metric("Short at median", len(short), border=True)
+    c3.caption(f"Buyers who'd lack cash if valued at the median: {aed(short['short_median'].sum())} in total")
+    short_p25 = assessed[assessed["short_p25"] > 0]
+    c4.metric("Short at P25", len(short_p25), border=True)
+    c4.caption(f"If valued at the low end: {aed(short_p25['short_p25'].sum())} in total")
+
+    # Report, riskiest first
+    view = report[list(REPORT_VIEW)].round({c: 0 for c in MONEY_COLUMNS})
+    st.dataframe(view, hide_index=True, width="stretch", column_config=REPORT_VIEW)
+    st.download_button("Download full report (CSV)", report.to_csv(index=False).encode("utf-8"),
+                       file_name="valuation_gap_report.csv", mime="text/csv", icon=":material/download:")
+
+    # One deal's advisor note
+    if assessed.empty:
+        return
+    st.subheader("Advisor note")
+    pick = st.selectbox("Deal", assessed.index,
+                        format_func=lambda i: f"{assessed.at[i, 'deal_id']}: {assessed.at[i, 'risk']} risk, "
+                                              f"{assessed.at[i, 'area']}")
+    row = assessed.loc[pick]
+    box, icon = RISK_BOX[row["risk"]]
+    box(f"#### {row['deal_id']}: {row['risk']} gap risk\n\n{row['advisor_note']}", icon=icon)
+
+
 def data_footer(sales: pd.DataFrame) -> None:
     source = ("full DLD data" if config.PROCESSED_PATH.exists()
               else f"sample data (the {config.SAMPLE_AREAS} busiest areas for apartments and for villas)")
@@ -279,8 +356,14 @@ def main() -> None:
     st.title("Valuation Gap Radar")
     st.caption("Before the buyer signs: will the bank value this home below the agreed price, "
                "and how much extra cash would that take?")
-    deal = deal_inputs(sales)
-    show_deal(sales, deal)
+    mode = st.sidebar.segmented_control("Check", ["One deal", "Pipeline CSV"], default="One deal", required=True)
+    if mode == "One deal":
+        deal = deal_inputs(sales)
+        settings = settings_inputs()
+        show_deal(sales, deal, settings)
+    else:
+        settings = settings_inputs()
+        show_batch(sales, settings)
     data_footer(sales)
 
 

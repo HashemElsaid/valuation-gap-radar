@@ -1,0 +1,13 @@
+deal_id,area,building,property_type,bedrooms,size_sqft,price,cash_available
+P-1001,JVC,,apartment,1,750,1000000,250000
+P-1002,JVC,Binghatti Amber,apartment,1,750,1000000,250000
+P-1003,Arjan,,apartment,1,800,1095000,240000
+P-1004,Marina,,apartment,2,1250,2450000,520000
+P-1005,Downtown,,apartment,1,850,1750000,380000
+P-1006,Business Bay,,apartment,studio,450,1050000,220000
+P-1007,Mira,,villa,3,2600,3600000,760000
+P-1008,Villanova,,townhouse,3,1750,2900000,620000
+P-1009,Dubai Hills,,villa,4,3600,6400000,1400000
+P-1010,International City PH 1,,apartment,studio,400,300000,70000
+P-1011,Dubai Sports City,,apartment,5,2600,2500000,550000
+P-1012,Al Reem Island,,apartment,2,1200,1500000,330000

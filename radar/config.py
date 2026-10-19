@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = ROOT / "data" / "raw"  # full DLD CSV, never committed
 PROCESSED_PATH = ROOT / "data" / "processed" / "sales.parquet"  # ETL output, never committed
 SAMPLE_PATH = ROOT / "data" / "sample" / "sales_sample.parquet"  # small, committed
+EXAMPLE_PIPELINE_PATH = ROOT / "data" / "sample" / "pipeline_example.csv"  # for batch mode
 
 # ---------------------------------------------------------------------------
 # Homes Sooner covers: ready freehold property in Dubai within this price band

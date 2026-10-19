@@ -132,6 +132,32 @@ The page shows:
 - a chart of comparable sales in AED per sqft over time (older sales fainter),
   with the likely range, the median and this deal, plus the full comps table
 
+### Pipeline mode (batch)
+
+Switch the sidebar to **Pipeline CSV** and upload one deal per row:
+
+```csv
+deal_id,area,building,property_type,bedrooms,size_sqft,price,cash_available
+P-1001,JVC,,apartment,1,750,1000000,250000
+P-1002,JVC,Binghatti Amber,apartment,1,750,1000000,250000
+```
+
+`building` is optional. Area shorthands (JVC, JVT, JLT, JBR, Marina,
+Downtown) and any capitalisation work; bedrooms can be `studio`; numbers can
+have commas. Without an upload the app shows
+[the example pipeline](data/sample/pipeline_example.csv).
+
+You get summary tiles (High/Medium risk counts, how many buyers would be short
+of cash at a median or P25 valuation, and by how much in total), the report
+sorted riskiest first, a CSV download with every column including the advisor
+note, and the full note for any deal. Every deal gets a row: one that can't be
+assessed (unknown area, too few comparable sales, a bad number) shows the
+reason in `notes` instead of disappearing.
+
+In the example pipeline, 9 of the 10 assessable buyers would be short of cash
+if the bank valued at P25, including some Low-risk deals. Buyers who hold only
+the 20% down payment have no buffer for even a small gap.
+
 ## Layout
 
 ```
@@ -143,6 +169,7 @@ radar/            core logic, plain Python with no UI code, so it is easy to tes
   backtest.py     checks the estimates against real sale prices
   cash.py         loan, closing costs, Sooner support, cash needed per scenario
   advisor.py      the plain-English advisor note
+  batch.py        pipeline CSV -> one report row per deal, riskiest first
 tests/            unit tests (pytest)
 data/raw/         full DLD download (gitignored)
 data/processed/   ETL output (gitignored)
@@ -156,5 +183,5 @@ data/sample/      small committed sample so the app runs without the download
 3. Comps engine: estimate the valuation range and gap risk (done)
 4. Cash math and tests: closing costs, Sooner support, cash needed per scenario (done)
 5. Streamlit UI (done)
-6. Batch mode: risk report for a CSV of pipeline deals
+6. Batch mode: risk report for a CSV of pipeline deals (done)
 7. README and deployment
