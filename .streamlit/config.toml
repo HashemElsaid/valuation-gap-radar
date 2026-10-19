@@ -3,3 +3,51 @@ toolbarMode = "viewer"  # hide the developer menu from people viewing the demo
 
 [browser]
 gatherUsageStats = false
+
+# ---------------------------------------------------------------------------
+# Look and feel
+# The accent (primaryColor) is blue so a selected button never looks like the
+# red "High risk" status. Red, yellow and green are kept for risk levels, and
+# the app always pairs them with an icon and a label.
+# ---------------------------------------------------------------------------
+[theme]
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFontWeights = [700, 650, 600, 600, 600, 600]
+metricValueFontSize = "1.75rem"
+metricValueFontWeight = 600
+baseRadius = "medium"
+showSidebarBorder = true
+
+[theme.light]
+primaryColor = "#1c5cab"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f3f5f8"
+textColor = "#14213d"
+borderColor = "#e1e5eb"
+redColor = "#d03b3b"
+redTextColor = "#a82828"
+yellowColor = "#fab219"
+yellowTextColor = "#7a5200"
+greenColor = "#0ca30c"
+greenTextColor = "#0a6e0a"
+chartCategoricalColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
+
+[theme.light.sidebar]
+backgroundColor = "#f3f5f8"
+
+[theme.dark]
+primaryColor = "#5598e7"
+backgroundColor = "#0e1117"
+secondaryBackgroundColor = "#1a1e26"
+textColor = "#e8eaee"
+borderColor = "#2b303a"
+redColor = "#e66767"
+redTextColor = "#ff8a8a"
+yellowColor = "#fab219"
+yellowTextColor = "#ffcf5c"
+greenColor = "#0ca30c"
+greenTextColor = "#5ce488"
+chartCategoricalColors = ["#3987e5", "#d95926", "#199e70", "#c98500"]
+
+[theme.dark.sidebar]
+backgroundColor = "#141820"

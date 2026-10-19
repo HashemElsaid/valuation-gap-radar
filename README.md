@@ -32,20 +32,22 @@ cash is at stake?
 
 ## What it does
 
-**One deal.** Enter the area, property type, bedrooms, building (optional),
-size, agreed price and the cash the buyer has. The app shows:
+**One deal.** Enter the home (area, type, bedrooms, building, size) and the
+deal (agreed price, buyer's cash). The page leads with the answer:
 
-- a **risk level** (Low, Medium or High) with a plain-English advisor note,
-  for example: *"Similar 1-bed apartments in Jumeirah Village Circle sold for a
-  median of AED 1,220 per sqft in the last 90 days (363 sales). This price
-  works out to AED 1,333 per sqft, 9% above that."*
-- the **estimated value**, its likely range, confidence, and where the
-  comparable sales came from
-- a **cash table** for a low (P25), median and high (P75) valuation: loan,
-  down payment, closing costs, what Sooner pays, cash needed, extra cash caused
-  by the gap, shortfall against the buyer's cash, and the monthly Sooner
-  repayment
-- a **chart** of the comparable sales in AED per sqft, plus the full list
+- a **verdict card**: the risk level (Low, Medium or High, each with its own
+  colour and icon), a one-line headline, a strip showing where the agreed price
+  sits against the likely valuation range, and four key numbers: estimated
+  value, how much the buyer would be short if the bank values low, the extra
+  cash at a median valuation, and confidence
+- a plain-English **advisor note**, for example: *"Similar 1-bed apartments in
+  Jumeirah Village Circle sold for a median of AED 1,220 per sqft in the last
+  90 days (363 sales). This price works out to AED 1,333 per sqft, 9% above
+  that."*
+- three tabs of detail: **cash at completion** for a low (P25), median and high
+  (P75) valuation (loan, down payment, closing costs, what Sooner pays, cash
+  needed, shortfall, monthly Sooner repayment), the **comparable sales** chart
+  and list, and the **closing cost** lines
 
 Naming the building makes a big difference. The JVC deal above is High risk
 with Low confidence on area-wide sales (1,110 of them, spread ±15%). The same
@@ -218,9 +220,9 @@ python -m radar.backtest   # optional: re-check accuracy (about 30 seconds)
 
 Commit the new `sales.parquet` and the deployed app picks it up.
 
-Run the 48 unit tests with `pytest`. They cover the fee and cash maths (with
+Run the 52 tests with `pytest`. They cover the fee and cash maths (with
 hand-worked figures), comp selection and weighting, the ETL rules, the advisor
-note and batch mode.
+note, batch mode, and smoke tests that run the app's main screens.
 
 ## Deploy
 
@@ -256,5 +258,5 @@ data/raw/           the DLD download (gitignored)
 data/processed/     clean sales for all areas, the app's main data (committed)
 data/sample/        smaller fallback sample and the example pipeline
 docs/screenshots/   images used in this README
-.streamlit/         app config (hides the developer menu from viewers)
+.streamlit/         theme (colours, font, light and dark) and app settings
 ```
