@@ -79,6 +79,39 @@ twice as accurate as area-wide comps (5.8% vs 11.0% median error). These are
 errors against sale prices: DLD does not publish bank valuations, so they
 can't be checked directly.
 
+## Cash scenarios
+
+For a valuation at P25, the median and P75:
+
+- **Loan** = LTV × min(price, valuation). LTV defaults to 80%.
+- **Closing costs:** DLD 4% of price + AED 580 admin, agency 2% of price, bank
+  arrangement 1% of loan, valuation AED 3,150, mortgage registration 0.25% of
+  loan, notary AED 4,000. VAT of 5% applies to everything except DLD fees and
+  mortgage registration, as stated on Sooner's site.
+- **Sooner support** = min(closing costs, 10% of property value, AED 500,000).
+  "Property value" can be the price or the valuation (still to be confirmed).
+- **Cash needed at completion** = down payment (price − loan) + closing costs
+  Sooner doesn't cover.
+- **Extra cash from the gap** = cash needed in the scenario − cash needed if the
+  bank valued the home at the agreed price.
+- **Monthly repayment** = Sooner amount × (1 + yearly fee × 5) ÷ 60. This
+  reproduces Sooner's published example (AED 161,490 at 7% ≈ AED 3,634 a month).
+
+Worked example: a AED 1,000,000 one-bed in JVC with AED 250,000 of cash.
+
+| Valuation | Cash needed | Extra from the gap | Short by |
+|---|---:|---:|---:|
+| P75: AED 1,065,421 | 200,000 | 0 | 0 |
+| Median: AED 945,323 | 243,741 | 43,741 | 0 |
+| P25: AED 772,800 | 381,760 | 181,760 | 131,760 |
+
+Closing costs run from 8.8% of the price (AED 500k home) down to 7.3%
+(AED 4.5M), so for eligible homes they stay under Sooner's 10% limit and
+Sooner covers them in full. The gap therefore hits the buyer through the down
+payment. Whether "property value" means price or valuation only matters after
+a deep down-valuation, where 10% of the valuation drops below the fees: about
+14% below price on a AED 500k home, 23% at AED 1M and 30% at AED 4.5M.
+
 ## Layout
 
 ```
@@ -87,6 +120,7 @@ radar/            core logic, plain Python with no UI code, so it is easy to tes
   etl.py          raw DLD CSV -> clean sales table (data/processed/sales.parquet)
   comps.py        comparable sales -> value range, confidence, gap risk
   backtest.py     checks the estimates against real sale prices
+  cash.py         loan, closing costs, Sooner support, cash needed per scenario
 tests/            unit tests (pytest)
 data/raw/         full DLD download (gitignored)
 data/processed/   ETL output (gitignored)
@@ -98,7 +132,7 @@ data/sample/      small committed sample so the app runs without the download
 1. Project setup (done)
 2. ETL: clean DLD transactions into a compact Parquet file (done)
 3. Comps engine: estimate the valuation range and gap risk (done)
-4. Cash math and tests: closing costs, Sooner support, cash needed per scenario
+4. Cash math and tests: closing costs, Sooner support, cash needed per scenario (done)
 5. Streamlit UI
 6. Batch mode: risk report for a CSV of pipeline deals
 7. README and deployment

@@ -45,7 +45,12 @@ DEFAULT_LTV = 0.80
 
 # ---------------------------------------------------------------------------
 # Closing costs (fee lines listed on joinsooner.com)
-# The comment on each line says what it is charged on.
+# The comment on each line says what it is charged on. Sooner's site doesn't
+# say whether the bank and registration fees are on the price or the loan;
+# UAE practice is the loan, so a low valuation makes them slightly smaller.
+#
+# Open question: these lines total about AED 150,900 on a AED 2M home, but
+# Sooner's FAQ quotes AED 161,490 for the same home.
 # ---------------------------------------------------------------------------
 DLD_RATE = 0.04  # of the price
 DLD_ADMIN_AED = 580  # flat
@@ -54,7 +59,8 @@ BANK_ARRANGEMENT_RATE = 0.01  # of the loan
 VALUATION_AED = 3_150  # flat
 MORTGAGE_REGISTRATION_RATE = 0.0025  # of the loan
 NOTARY_AED = 4_000  # flat
-VAT_RATE = 0.05  # on agency, bank arrangement, valuation and notary; not on government fees
+# Sooner: "VAT applies to all except mortgage registration & land dept fees".
+VAT_RATE = 0.05
 
 # ---------------------------------------------------------------------------
 # Market data and comparables
