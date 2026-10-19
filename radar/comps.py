@@ -41,6 +41,11 @@ class Estimate:
     def n_comps(self) -> int:
         return len(self.comps)
 
+    @property
+    def valuations(self) -> dict[str, float]:
+        """The three valuation scenarios the cash math runs on."""
+        return {"P25": self.value_p25, "Median": self.value_median, "P75": self.value_p75}
+
 
 @dataclass
 class GapRisk:

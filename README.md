@@ -17,6 +17,7 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1          # macOS/Linux: source .venv/bin/activate
 pip install -r requirements-dev.txt
 pytest
+streamlit run app.py                # opens http://localhost:8501
 ```
 
 The app runs on the committed sample (`data/sample/`) out of the box. To use
@@ -112,15 +113,36 @@ payment. Whether "property value" means price or valuation only matters after
 a deep down-valuation, where 10% of the valuation drops below the fees: about
 14% below price on a AED 500k home, 23% at AED 1M and 30% at AED 4.5M.
 
+## The app
+
+Enter the deal in the sidebar: area, property type, bedrooms, building
+(optional, but it sharpens the estimate a lot), size in sqft, agreed price and
+the cash the buyer has. Settings hold the LTV, Sooner's fee and the value
+basis. The dropdowns only offer combinations that have sales, with the count
+next to each.
+
+The page shows:
+
+- a risk box (Low, Medium or High, each with its own colour and icon) with a
+  plain-English advisor note
+- the estimate, its likely range, the price vs estimate, confidence and where
+  the comps came from
+- a cash table for a low (P25), median and high (P75) valuation, with the
+  closing cost lines one click away
+- a chart of comparable sales in AED per sqft over time (older sales fainter),
+  with the likely range, the median and this deal, plus the full comps table
+
 ## Layout
 
 ```
+app.py            the Streamlit app: inputs and display only, no maths
 radar/            core logic, plain Python with no UI code, so it is easy to test
   config.py       every assumption: fees, Sooner terms, eligibility, paths
   etl.py          raw DLD CSV -> clean sales table (data/processed/sales.parquet)
   comps.py        comparable sales -> value range, confidence, gap risk
   backtest.py     checks the estimates against real sale prices
   cash.py         loan, closing costs, Sooner support, cash needed per scenario
+  advisor.py      the plain-English advisor note
 tests/            unit tests (pytest)
 data/raw/         full DLD download (gitignored)
 data/processed/   ETL output (gitignored)
@@ -133,6 +155,6 @@ data/sample/      small committed sample so the app runs without the download
 2. ETL: clean DLD transactions into a compact Parquet file (done)
 3. Comps engine: estimate the valuation range and gap risk (done)
 4. Cash math and tests: closing costs, Sooner support, cash needed per scenario (done)
-5. Streamlit UI
+5. Streamlit UI (done)
 6. Batch mode: risk report for a CSV of pipeline deals
 7. README and deployment

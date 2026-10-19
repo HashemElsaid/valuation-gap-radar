@@ -2,3 +2,4 @@
 pandas==3.0.6      # tables and data cleaning
 pyarrow==26.0.0    # reads and writes the Parquet data file
 streamlit==1.66.0  # the web app
+altair==6.3.0      # the price-per-sqft chart
