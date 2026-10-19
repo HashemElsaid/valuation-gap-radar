@@ -4,6 +4,12 @@ toolbarMode = "viewer"  # hide the developer menu from people viewing the demo
 [browser]
 gatherUsageStats = false
 
+[server]
+# Watch the code files and reload any that change. Without this, Streamlit
+# Cloud re-ran the new app.py after a push but kept the old radar/ modules in
+# memory, and the app crashed until it was restarted.
+fileWatcherType = "poll"
+
 # ---------------------------------------------------------------------------
 # Look and feel, following joinsooner.com: Manrope type, near-black ink,
 # white and warm-grey surfaces, and Sooner's lime (#e9fe0f) as a highlighter.
