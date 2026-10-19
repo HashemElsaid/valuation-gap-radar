@@ -70,3 +70,25 @@ MAX_PRICE_PER_SQM = 150_000
 # The committed sample keeps every sale in this many of the busiest areas,
 # chosen separately for apartments and villas.
 SAMPLE_AREAS = 10
+
+# ---------------------------------------------------------------------------
+# Comps engine
+# ---------------------------------------------------------------------------
+MIN_COMPS = 3  # with fewer comps we don't estimate at all
+MIN_PROJECT_COMPS = 5  # use same-project comps only when there are at least this many
+RECENCY_HALF_LIFE_DAYS = 120  # a sale this many days old counts half as much as today's
+RECENT_DAYS = 90  # window for the "sold in the last 90 days" figure
+
+# Confidence: enough comps, agreeing closely. Spread = (P75 - P25) / median.
+HIGH_CONFIDENCE_COMPS = 10
+HIGH_CONFIDENCE_SPREAD = 0.15
+MEDIUM_CONFIDENCE_COMPS = 5
+MEDIUM_CONFIDENCE_SPREAD = 0.30
+
+# Gap risk score = how far the price sits above the median estimate, plus a
+# buffer when the estimate is less certain.
+CONFIDENCE_BUFFER = {"High": 0.0, "Medium": 0.03, "Low": 0.06}
+MEDIUM_RISK_FROM = 0.03  # score of 3% or more
+HIGH_RISK_FROM = 0.10  # score of 10% or more
+
+SQFT_PER_SQM = 10.7639  # Dubai agents quote prices per sqft
