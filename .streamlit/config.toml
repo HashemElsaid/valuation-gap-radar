@@ -5,49 +5,60 @@ toolbarMode = "viewer"  # hide the developer menu from people viewing the demo
 gatherUsageStats = false
 
 # ---------------------------------------------------------------------------
-# Look and feel
-# The accent (primaryColor) is blue so a selected button never looks like the
-# red "High risk" status. Red, yellow and green are kept for risk levels, and
-# the app always pairs them with an icon and a label.
+# Look and feel, following joinsooner.com: Manrope type, near-black ink,
+# white and warm-grey surfaces, and Sooner's lime (#e9fe0f) as a highlighter.
+#
+# - The accent (primaryColor) is near-black in light mode, like Sooner's black
+#   buttons; lime text on white would be unreadable. In dark mode lime reads
+#   well on black, so it becomes the accent there.
+# - The lime highlighter itself is drawn in app.py (black text on lime, as on
+#   Sooner's site), so it reads the same in light and dark mode.
+# - Risk levels use red (High), orange (Medium) and green (Low), always with an
+#   icon and a label. Medium is orange so it never looks like the brand lime.
 # ---------------------------------------------------------------------------
 [theme]
-font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+font = "Manrope:https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
 headingFontWeights = [700, 650, 600, 600, 600, 600]
-metricValueFontSize = "1.75rem"
-metricValueFontWeight = 600
+metricValueFontSize = "1.85rem"
+metricValueFontWeight = 650
 baseRadius = "medium"
+buttonRadius = "medium"
 showSidebarBorder = true
 
 [theme.light]
-primaryColor = "#1c5cab"
+primaryColor = "#0e0d0d"
 backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f3f5f8"
-textColor = "#14213d"
-borderColor = "#e1e5eb"
+secondaryBackgroundColor = "#f5f4f0"
+textColor = "#0e0d0d"
+linkColor = "#0e0d0d"
+borderColor = "#e6e4dd"
 redColor = "#d03b3b"
 redTextColor = "#a82828"
-yellowColor = "#fab219"
-yellowTextColor = "#7a5200"
+orangeColor = "#e8890c"
+orangeTextColor = "#8a4b00"
 greenColor = "#0ca30c"
 greenTextColor = "#0a6e0a"
 chartCategoricalColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
 
 [theme.light.sidebar]
-backgroundColor = "#f3f5f8"
+backgroundColor = "#f5f4f0"
+secondaryBackgroundColor = "#ffffff"
 
 [theme.dark]
-primaryColor = "#5598e7"
-backgroundColor = "#0e1117"
-secondaryBackgroundColor = "#1a1e26"
-textColor = "#e8eaee"
-borderColor = "#2b303a"
+primaryColor = "#e9fe0f"
+backgroundColor = "#0e0d0d"
+secondaryBackgroundColor = "#1d1b1b"
+textColor = "#f4f4f4"
+linkColor = "#e9fe0f"
+borderColor = "#2f2b2d"
 redColor = "#e66767"
 redTextColor = "#ff8a8a"
-yellowColor = "#fab219"
-yellowTextColor = "#ffcf5c"
+orangeColor = "#f0a040"
+orangeTextColor = "#ffc27a"
 greenColor = "#0ca30c"
 greenTextColor = "#5ce488"
 chartCategoricalColors = ["#3987e5", "#d95926", "#199e70", "#c98500"]
 
 [theme.dark.sidebar]
-backgroundColor = "#141820"
+backgroundColor = "#161414"
+secondaryBackgroundColor = "#232020"

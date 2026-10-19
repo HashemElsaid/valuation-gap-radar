@@ -27,7 +27,7 @@ def test_one_deal_page_shows_a_verdict():
     at = run_app()
 
     assert not at.exception
-    assert "The agreed price is" in page_text(at)
+    assert "We estimate the bank will value it at about" in page_text(at)
     assert len(at.tabs) == 3
 
 
@@ -46,7 +46,7 @@ def test_a_size_with_no_comparable_sales_says_so():
     widget(at.sidebar.number_input, "Size (sqft)").set_value(20_000).run()
 
     assert not at.exception
-    assert "Not enough comparable sales" in page_text(at)
+    assert "Not enough similar sales" in page_text(at)
 
 
 def test_pipeline_mode_reports_every_example_deal():

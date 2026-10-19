@@ -3,8 +3,11 @@
 The note has up to four parts:
 1. how the price compares with recent similar sales (per sqft, as Dubai quotes it)
 2. what a low valuation would mean for the buyer's cash
-3. what to do about it (Medium and High risk only)
+3. what to do about it (Medium and High risk only; optional)
 4. a warning when the estimate itself is uncertain (Low confidence only)
+
+Words are kept plain on purpose: "typical" rather than "median", "low end"
+rather than "P25", "similar sales" rather than "comps".
 """
 
 import pandas as pd
@@ -32,8 +35,12 @@ def per_sqft(price_per_sqm: float) -> float:
 
 def advisor_note(*, area: str, property_type: str, bedrooms: int, size_sqm: float,
                  price: float, cash_available: float, estimate: Estimate, risk: GapRisk,
-                 scenarios: pd.DataFrame) -> str:
-    """A few short paragraphs (Markdown) explaining the risk and the cash at stake."""
+                 scenarios: pd.DataFrame, include_actions: bool = True) -> str:
+    """A few short paragraphs (Markdown) explaining the risk and the cash at stake.
+
+    `include_actions=False` leaves out the "what to do" paragraph, for pages that
+    show next steps separately.
+    """
     home = describe_home(property_type, bedrooms)
     if estimate.basis == "project":
         place = f"{estimate.comps['project'].iloc[0]} ({area})"
@@ -52,53 +59,54 @@ def advisor_note(*, area: str, property_type: str, bedrooms: int, size_sqm: floa
     diff = deal_psf / ref_psf - 1
     direction = "above" if diff >= 0 else "below"
     paragraphs.append(
-        f"Similar {home} in {place} sold for a median of **AED {ref_psf:,.0f} per sqft** {when}. "
+        f"Similar {home} in {place} typically sold for **AED {ref_psf:,.0f} per sqft** {when}. "
         f"This price works out to AED {deal_psf:,.0f} per sqft, **{abs(diff):.0%} {direction}** that."
     )
 
     # 2. What a low valuation would cost the buyer.
     by_name = scenarios.set_index("name")
-    median, low = by_name.loc["Median"], by_name.loc["P25"]
+    typical, low = by_name.loc["Median"], by_name.loc["P25"]
     sentences = []
     if risk.level == "Low" and risk.premium <= 0:
-        sentences.append("The price is at or below our estimate, so a valuation gap looks unlikely.")
+        sentences.append("The price is at or below our estimate, so a low valuation looks unlikely.")
     elif risk.level == "Low":
-        sentences.append("That is in line with what similar homes sell for, so a valuation gap looks unlikely.")
+        sentences.append("That is in line with what similar homes sell for, so a low valuation looks unlikely.")
     else:
-        if median["extra_cash_from_gap"] > 0:
+        if typical["extra_cash_from_gap"] > 0:
             sentences.append(
-                f"If the bank values it at the median estimate ({aed(median['valuation'])}), the buyer needs "
-                f"**{aed(median['extra_cash_from_gap'])} more cash** at completion; at the low end of the "
-                f"range ({aed(low['valuation'])}), **{aed(low['extra_cash_from_gap'])} more**."
+                f"If the bank values it at the typical estimate ({aed(typical['valuation'])}), the buyer needs "
+                f"**{aed(typical['extra_cash_from_gap'])} more cash** at completion; if it values at the low end "
+                f"({aed(low['valuation'])}), **{aed(low['extra_cash_from_gap'])} more**."
             )
         else:
             sentences.append(
-                f"At the median estimate there is no gap, but at the low end of the range "
+                f"At the typical estimate there is no gap, but if the bank values at the low end "
                 f"({aed(low['valuation'])}) the buyer needs **{aed(low['extra_cash_from_gap'])} more cash** "
                 f"at completion."
             )
-        if median["shortfall"] > 0:
+        if typical["shortfall"] > 0:
             sentences.append(
-                f"With {aed(cash_available)} available, they would be **{aed(median['shortfall'])} short** at the "
-                f"median estimate and {aed(low['shortfall'])} short at the low end."
+                f"With {aed(cash_available)} available, they would be **{aed(typical['shortfall'])} short** at the "
+                f"typical estimate and {aed(low['shortfall'])} short at the low end."
             )
         elif low["shortfall"] > 0:
             sentences.append(
-                f"With {aed(cash_available)} available, they would be **{aed(low['shortfall'])} short** at the low end."
+                f"With {aed(cash_available)} available, they would be **{aed(low['shortfall'])} short** if the bank "
+                f"values at the low end."
             )
         else:
             sentences.append(f"Their {aed(cash_available)} covers both cases.")
     paragraphs.append(" ".join(sentences))
 
-    # 3. What to do.
-    if risk.level == "High":
+    # 3. What to do (optional), or a warning about the inputs.
+    if include_actions and risk.level == "High":
         paragraphs.append(
             "Before the Form F is signed, consider a bank pre-valuation, renegotiating the price, "
             "or a Form F clause that protects the deposit if the valuation comes in low."
         )
-    elif risk.level == "Medium":
+    elif include_actions and risk.level == "Medium":
         paragraphs.append("Worth confirming the buyer has this buffer before signing.")
-    elif risk.premium < UNUSUALLY_LOW:
+    if risk.premium < UNUSUALLY_LOW:
         paragraphs.append(
             f"A price {abs(risk.premium):.0%} below similar sales is unusual: "
             "double-check the size, bedrooms and price."
@@ -108,7 +116,7 @@ def advisor_note(*, area: str, property_type: str, bedrooms: int, size_sqm: floa
     if estimate.confidence == "Low":
         tip = " Choosing the building would sharpen it." if estimate.basis == "area" else ""
         paragraphs.append(
-            f"Confidence is low ({estimate.n_comps:,} comparable sales, with prices spread widely), "
+            f"We're not very sure here ({estimate.n_comps:,} similar sales, with prices that vary a lot), "
             f"so treat this as a rough guide.{tip}"
         )
 

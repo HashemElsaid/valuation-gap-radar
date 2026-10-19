@@ -5,13 +5,14 @@ Dubai Land Department (DLD) sales, score the risk that it comes in below the
 agreed price, and show how much extra cash the buyer would need if it does.
 
 Built as a demo of how [Sooner](https://www.joinsooner.com) could screen deals
-for down-valuation risk.
+for down-valuation risk, and styled after Sooner's site. It's an independent
+demo, not an official Sooner product.
 
 **Live demo: [valuation-gap-radar.streamlit.app](https://valuation-gap-radar.streamlit.app)**
 (or jump straight to the [pipeline report](https://valuation-gap-radar.streamlit.app/?mode=pipeline)).
 The app sleeps when unused, so the first visit can take about 30 seconds.
 
-![One deal: High gap risk, advisor note, cash scenarios and comparable sales](docs/screenshots/single-deal.png)
+![One deal: high risk of a low valuation, plain-words explanation, next steps and the cash at stake](docs/screenshots/single-deal.png)
 
 ## The problem
 
@@ -21,10 +22,12 @@ buyer has to make up the difference in cash: at 80% LTV, every AED 100,000 of
 gap costs the buyer AED 80,000 more at completion.
 
 Sooner covers a first-time buyer's closing costs (DLD fee, agency, mortgage
-setup) up to 10% of the home's value. Those costs come to 7–9% of the price, so
-Sooner covers them in full. A gap therefore lands on the **down payment**,
-which is exactly where Sooner's customers have no spare cash. If they can't
-find it, the deal fails, and under the Form F they can lose their deposit.
+setup) up to 10% of the home's value. Those costs run from 11% of the price on a
+AED 500,000 home down to 7.6% at AED 4.5M, so Sooner covers them in full on
+any home from about AED 654,000, and nearly all of them below that. A gap
+therefore lands on the **down payment**, which is exactly where Sooner's
+customers have no spare cash. If they can't find it, the deal fails, and under
+the Form F they can lose their deposit.
 
 The fix is to check before the Form F is signed: is this price high compared
 with what similar homes actually sold for, and if the bank agrees, how much
@@ -32,35 +35,42 @@ cash is at stake?
 
 ## What it does
 
+The app is written so anyone can follow it. It uses everyday words ("likely
+bank valuation", "buyer would be short by", "how sure we are") rather than
+P25 or LTV, each page opens with a three-step "how this works" strip, every
+input and number has a help tooltip, and a glossary at the bottom explains the
+terms.
+
 **One deal.** Enter the home (area, type, bedrooms, building, size) and the
 deal (agreed price, buyer's cash). The page leads with the answer:
 
-- a **verdict card**: the risk level (Low, Medium or High, each with its own
-  colour and icon), a one-line headline, a strip showing where the agreed price
-  sits against the likely valuation range, and four key numbers: estimated
-  value, how much the buyer would be short if the bank values low, the extra
-  cash at a median valuation, and confidence
-- a plain-English **advisor note**, for example: *"Similar 1-bed apartments in
-  Jumeirah Village Circle sold for a median of AED 1,220 per sqft in the last
+- a **verdict**: the risk of a low valuation (Low, Medium or High, each with its
+  own colour and icon), a one-line headline, the estimate in a sentence, a bar
+  showing where the agreed price sits against the likely valuation range, four
+  key numbers, and a line saying why it's that risk level
+- **In plain words**: the advisor note, for example: *"Similar 1-bed apartments
+  in Jumeirah Village Circle typically sold for AED 1,220 per sqft in the last
   90 days (363 sales). This price works out to AED 1,333 per sqft, 9% above
   that."*
-- three tabs of detail: **cash at completion** for a low (P25), median and high
-  (P75) valuation (loan, down payment, closing costs, what Sooner pays, cash
-  needed, shortfall, monthly Sooner repayment), the **comparable sales** chart
-  and list, and the **closing cost** lines
+- **What to do next**: a checklist that fits the risk level (pre-valuation,
+  negotiate, a Form F clause, pick the building)
+- three tabs of detail: **cash the buyer needs** if the bank values low, typical
+  or high (loan, down payment, closing fees, what Sooner pays, shortfall,
+  monthly repayment), the **similar homes sold** chart and list, and the
+  **closing fees** line by line, as on Sooner's calculator
 
 Naming the building makes a big difference. The JVC deal above is High risk
 with Low confidence on area-wide sales (1,110 of them, spread ±15%). The same
 deal in Binghatti Amber is Low risk with High confidence: 29 sales within ±5%.
 
-**A pipeline.** Upload a CSV of deals (or open `?mode=pipeline` to see the
-example) and get every deal checked at once, riskiest first, with a
-downloadable report.
+**Many deals.** Switch the sidebar to **Many deals**, upload a CSV of the
+pipeline (or open `?mode=pipeline` to see the example), and get every deal
+checked at once, riskiest first, with a downloadable report.
 
-![Pipeline mode: summary tiles, report sorted by risk, advisor note](docs/screenshots/pipeline.png)
+![Many deals: summary tiles, every deal sorted by risk, and the message for one deal](docs/screenshots/pipeline.png)
 
 In the example pipeline, 9 of the 10 assessable buyers would be short of cash
-if the bank valued at P25, including some Low-risk deals. Buyers who hold only
+if the bank valued low (P25), including some Low-risk deals. Buyers who hold only
 the 20% down payment have no buffer for even a small gap.
 
 ## How it works
@@ -120,12 +130,17 @@ about twice as accurate as area-wide ones (5.8% vs 11.0% median error).
 For a valuation at P25, the median and P75:
 
 - **Loan** = LTV × min(price, valuation)
-- **Closing costs** = the fee lines from Sooner's site, with VAT where it applies
+- **Closing costs** = the nine fee lines on Sooner's calculator (DLD, title
+  deed, agency, bank arrangement, mortgage registration, valuation, trustee,
+  NOC, conveyancing), with VAT where it applies. They reproduce Sooner's
+  published totals exactly: AED 161,490 on a AED 2M home (FAQ) and AED 232,890
+  on a AED 3M home (calculator).
 - **Sooner support** = min(closing costs, 10% of property value, AED 500,000)
 - **Cash needed at completion** = (price − loan) + closing costs Sooner doesn't cover
 - **Extra cash from the gap** = cash needed − cash needed if the bank valued at the price
 - **Monthly repayment** = Sooner amount × (1 + yearly fee × 5) ÷ 60. This
-  reproduces Sooner's published example (AED 161,490 at 7% ≈ AED 3,634 a month).
+  reproduces both of Sooner's published examples: AED 161,490 at 7% ≈ AED 3,634
+  a month, and AED 232,890 at 7% ≈ AED 5,240 a month.
 
 The deal in the screenshot: a AED 1,000,000 one-bed (750 sqft) in JVC, with
 AED 250,000 of cash.
@@ -140,7 +155,7 @@ AED 250,000 of cash.
 
 Every number lives in [`radar/config.py`](radar/config.py); change it there and
 the whole app follows. LTV, Sooner's fee and the value basis can also be
-changed in the app's Settings.
+changed in the app's Assumptions panel.
 
 | Assumption | Value |
 |---|---|
@@ -149,26 +164,27 @@ changed in the app's Settings.
 | Sooner repayment | 60 months, 7–9% flat yearly fee (8% default) |
 | "Property value" for the 10% limit | Agreed price (switchable to valuation) |
 | Loan-to-value | 80% (expat, first home under AED 5M) |
-| DLD transfer fee | 4% of price + AED 580 admin |
+| Dubai Land Department | 4% of price + AED 580 |
+| DLD title deed | AED 250 |
 | Agency commission | 2% of price + VAT |
 | Bank arrangement fee | 1% of loan + VAT |
-| Bank valuation fee | AED 3,150 + VAT |
-| Mortgage registration | 0.25% of loan |
-| Notary | AED 4,000 + VAT |
+| Mortgage registration | 0.25% of loan + AED 10 |
+| Valuation | AED 3,000 + VAT (AED 3,150) |
+| Trustee | AED 4,000 + VAT |
+| NOC (developer) | AED 2,500 + VAT |
+| Conveyancing | AED 7,500 + VAT |
 | VAT | 5%, not on DLD fees or mortgage registration (per Sooner's site) |
 | Comparable sales | Same area, type, bedrooms; size ±20%; same building if 5+ sales |
 | Recency weight | Halves every 120 days |
 | Data window | Last 24 months of sales (currently Jan–Oct 2026) |
 
-**Open questions for Sooner:**
-
-1. Is the 10% limit based on the agreed price or the bank valuation? It only
-   changes the result after a deep down-valuation: about 14% below price on a
-   AED 500k home, 23% at AED 1M and 30% at AED 4.5M.
-2. The fee lines above total about AED 150,900 on a AED 2M home, but Sooner's
-   FAQ quotes AED 161,490 for the same home. Which costs are missing?
-3. Are the bank arrangement and mortgage registration fees charged on the loan
-   (assumed here, as is usual in the UAE) or on the price?
+**Open question for Sooner:** is the 10% limit based on the agreed price or the
+bank valuation? It matters most for cheaper homes, where the fees sit close to
+10%. On a AED 700,000 home it changes the result once the valuation is 2% below
+the price; at AED 1M, 11% below; at AED 4.5M, 27% below. (Two earlier questions,
+which fees are included and whether bank fees are charged on the loan, are
+answered by the receipt on Sooner's calculator, which these fee lines now match
+line by line.)
 
 ## Limitations
 
@@ -220,9 +236,10 @@ python -m radar.backtest   # optional: re-check accuracy (about 30 seconds)
 
 Commit the new `sales.parquet` and the deployed app picks it up.
 
-Run the 52 tests with `pytest`. They cover the fee and cash maths (with
-hand-worked figures), comp selection and weighting, the ETL rules, the advisor
-note, batch mode, and smoke tests that run the app's main screens.
+Run the 54 tests with `pytest`. They cover the fee and cash maths (checked
+against Sooner's own published examples and hand-worked figures), comp
+selection and weighting, the ETL rules, the advisor note, batch mode, and smoke
+tests that run the app's main screens.
 
 ## Deploy
 
@@ -258,5 +275,5 @@ data/raw/           the DLD download (gitignored)
 data/processed/     clean sales for all areas, the app's main data (committed)
 data/sample/        smaller fallback sample and the example pipeline
 docs/screenshots/   images used in this README
-.streamlit/         theme (colours, font, light and dark) and app settings
+.streamlit/         theme styled after joinsooner.com (Manrope, black, lime), light and dark
 ```

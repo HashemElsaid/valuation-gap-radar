@@ -52,20 +52,25 @@ def loan_amount(price: float, valuation: float, ltv: float = config.DEFAULT_LTV)
 
 
 def closing_costs(price: float, loan: float) -> dict[str, float]:
-    """Each closing-cost line in AED, plus VAT on the lines it applies to."""
+    """Each closing-cost line in AED, including VAT where it applies.
+
+    Same lines and order as the receipt on Sooner's calculator, so the numbers
+    can be checked line by line against their site.
+    """
     lines = [
-        # (fee line, amount, VAT applies?)
-        ("DLD transfer fee", config.DLD_RATE * price, False),
-        ("DLD admin fee", config.DLD_ADMIN_AED, False),
+        # (fee line, amount before VAT, VAT applies?)
+        ("Dubai Land Department", config.DLD_RATE * price + config.DLD_ADMIN_AED, False),
+        ("DLD title deed", config.DLD_TITLE_DEED_AED, False),
         ("Agency commission", config.AGENCY_RATE * price, True),
         ("Bank arrangement fee", config.BANK_ARRANGEMENT_RATE * loan, True),
-        ("Bank valuation fee", config.VALUATION_AED, True),
-        ("Mortgage registration", config.MORTGAGE_REGISTRATION_RATE * loan, False),
-        ("Notary fee", config.NOTARY_AED, True),
+        ("Mortgage registration",
+         config.MORTGAGE_REGISTRATION_RATE * loan + config.MORTGAGE_REGISTRATION_ADMIN_AED, False),
+        ("Valuation", config.VALUATION_AED, True),
+        ("Trustee", config.TRUSTEE_AED, True),
+        ("NOC", config.NOC_AED, True),
+        ("Conveyancing", config.CONVEYANCING_AED, True),
     ]
-    costs = {name: amount for name, amount, _ in lines}
-    costs["VAT"] = config.VAT_RATE * sum(amount for _, amount, vat_applies in lines if vat_applies)
-    return costs
+    return {name: amount * (1 + config.VAT_RATE if vat_applies else 1) for name, amount, vat_applies in lines}
 
 
 def sooner_support(closing_total: float, price: float, valuation: float,
