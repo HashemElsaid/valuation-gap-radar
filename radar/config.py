@@ -61,3 +61,12 @@ VAT_RATE = 0.05  # on agency, bank arrangement, valuation and notary; not on gov
 # ---------------------------------------------------------------------------
 LOOKBACK_MONTHS = 24  # the ETL keeps sales from the last 24 months
 SIZE_TOLERANCE = 0.20  # a comp's size must be within ±20% of the subject's
+
+# Sales outside this price-per-sqm range are typos or non-market transfers.
+# Even the cheapest freehold areas trade around AED 8,000-12,000 per sqm.
+MIN_PRICE_PER_SQM = 5_000
+MAX_PRICE_PER_SQM = 150_000
+
+# The committed sample keeps every sale in this many of the busiest areas,
+# chosen separately for apartments and villas.
+SAMPLE_AREAS = 10
