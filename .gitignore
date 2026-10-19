@@ -5,11 +5,11 @@ __pycache__/
 .pytest_cache/
 
 # Data
-# The raw DLD download is large and stays on your machine.
+# The raw DLD download is large and stays on your machine. The cleaned file in
+# data/processed/ is small (under 500 KB) and IS committed, so the deployed
+# demo covers every area.
 data/raw/*
 !data/raw/.gitkeep
-# The full processed file is rebuilt by the ETL. Only data/sample/ is committed.
-data/processed/
 
 # Streamlit secrets (none yet, but never commit them)
 .streamlit/secrets.toml

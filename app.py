@@ -220,7 +220,7 @@ def price_chart(est, deal_psf: float, colors: dict) -> alt.Chart:
     dots = alt.Chart(comps).mark_circle(
         size=70, color=colors["comps"], stroke=colors["surface"], strokeWidth=2
     ).encode(
-        x=alt.X("date:T", title="Sale date"),
+        x=alt.X("date:T", title="Sale date", axis=alt.Axis(format="%b", tickCount="month")),
         y=alt.Y("price_per_sqft:Q", title="AED per sqft", scale=alt.Scale(zero=False),
                 axis=alt.Axis(format=",.0f")),
         opacity=alt.Opacity("weight:Q", scale=alt.Scale(domain=[0, 1], range=[0.15, 0.8]), legend=None),
@@ -280,13 +280,12 @@ REPORT_VIEW = {
     "estimate": st.column_config.NumberColumn("Estimate (AED)", format="localized"),
     "price_vs_estimate": st.column_config.NumberColumn("vs estimate", format="percent"),
     "confidence": "Confidence",
-    "extra_cash_median": st.column_config.NumberColumn("Extra cash at median", format="localized"),
     "short_median": st.column_config.NumberColumn("Short at median", format="localized"),
     "short_p25": st.column_config.NumberColumn("Short at P25", format="localized"),
     "notes": "Notes",
 }
 
-MONEY_COLUMNS = ["price", "estimate", "extra_cash_median", "short_median", "short_p25"]
+MONEY_COLUMNS = ["price", "estimate", "short_median", "short_p25"]
 
 
 def show_batch(sales: pd.DataFrame, settings: dict) -> None:
@@ -324,7 +323,9 @@ def show_batch(sales: pd.DataFrame, settings: dict) -> None:
 
     # Report, riskiest first
     view = report[list(REPORT_VIEW)].round({c: 0 for c in MONEY_COLUMNS})
-    st.dataframe(view, hide_index=True, width="stretch", column_config=REPORT_VIEW)
+    rows_shown = min(len(view), 20)  # show every row of a small pipeline without scrolling
+    st.dataframe(view, hide_index=True, width="stretch", height=35 * (rows_shown + 1) + 3,
+                 column_config=REPORT_VIEW)
     st.download_button("Download full report (CSV)", report.to_csv(index=False).encode("utf-8"),
                        file_name="valuation_gap_report.csv", mime="text/csv", icon=":material/download:")
 
@@ -341,12 +342,12 @@ def show_batch(sales: pd.DataFrame, settings: dict) -> None:
 
 
 def data_footer(sales: pd.DataFrame) -> None:
-    source = ("full DLD data" if config.PROCESSED_PATH.exists()
-              else f"sample data (the {config.SAMPLE_AREAS} busiest areas for apartments and for villas)")
+    source = ("All areas in the DLD data." if config.PROCESSED_PATH.exists()
+              else f"Sample data: the {config.SAMPLE_AREAS} busiest areas for apartments and for villas.")
     st.divider()
     st.caption(
         f"Based on {len(sales):,} DLD sales of ready freehold homes, "
-        f"{sales['date'].min():%d %b %Y} to {sales['date'].max():%d %b %Y} ({source}). "
+        f"{sales['date'].min():%d %b %Y} to {sales['date'].max():%d %b %Y}. {source} "
         "This is an estimate from past sales, not a bank valuation."
     )
 
@@ -356,7 +357,9 @@ def main() -> None:
     st.title("Valuation Gap Radar")
     st.caption("Before the buyer signs: will the bank value this home below the agreed price, "
                "and how much extra cash would that take?")
-    mode = st.sidebar.segmented_control("Check", ["One deal", "Pipeline CSV"], default="One deal", required=True)
+    # ?mode=pipeline in the URL opens pipeline mode directly, e.g. for a shared link.
+    default_mode = "Pipeline CSV" if st.query_params.get("mode") == "pipeline" else "One deal"
+    mode = st.sidebar.segmented_control("Check", ["One deal", "Pipeline CSV"], default=default_mode, required=True)
     if mode == "One deal":
         deal = deal_inputs(sales)
         settings = settings_inputs()

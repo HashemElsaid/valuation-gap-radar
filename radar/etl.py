@@ -7,9 +7,10 @@ Run it from the project root:
 It reads every CSV in data/raw/, keeps plain resales of ready freehold
 apartments and villas from the last 24 months, and writes two files:
 
-- data/processed/sales.parquet         every clean sale (gitignored)
-- data/sample/sales_sample.parquet     the busiest areas only (committed, so
-                                       the app runs without the download)
+- data/processed/sales.parquet         every clean sale (committed, so the
+                                       deployed app covers every area)
+- data/sample/sales_sample.parquet     the busiest areas only (a smaller
+                                       fallback if the file above is missing)
 
 Each filter prints how many rows it removed, so you can see exactly what
 happened to the data.
@@ -159,7 +160,7 @@ def build_sample(sales: pd.DataFrame, n_areas: int = config.SAMPLE_AREAS) -> pd.
 
 
 def load_sales() -> pd.DataFrame:
-    """The full clean data if you've run the ETL, otherwise the committed sample."""
+    """The full clean data, or the smaller sample if that file is missing."""
     path = config.PROCESSED_PATH if config.PROCESSED_PATH.exists() else config.SAMPLE_PATH
     return pd.read_parquet(path)
 
