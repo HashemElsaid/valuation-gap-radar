@@ -7,6 +7,10 @@ agreed price, and show how much extra cash the buyer would need if it does.
 Built as a demo of how [Sooner](https://www.joinsooner.com) could screen deals
 for down-valuation risk.
 
+**Live demo: [valuation-gap-radar.streamlit.app](https://valuation-gap-radar.streamlit.app)**
+(or jump straight to the [pipeline report](https://valuation-gap-radar.streamlit.app/?mode=pipeline)).
+The app sleeps when unused, so the first visit can take about 30 seconds.
+
 ![One deal: High gap risk, advisor note, cash scenarios and comparable sales](docs/screenshots/single-deal.png)
 
 ## The problem
@@ -220,13 +224,16 @@ note and batch mode.
 
 ## Deploy
 
-The app is ready for [Streamlit Community Cloud](https://share.streamlit.io)
-(free):
+The live demo runs on [Streamlit Community Cloud](https://share.streamlit.io)
+(free) and redeploys automatically on every push to `main`. To deploy your own
+copy:
 
-1. Push this repository to GitHub (it can be private).
-2. On share.streamlit.io, choose **Create app**, pick the repository, branch
-   `main` and main file `app.py`.
-3. Under **Advanced settings**, choose Python 3.11, then **Deploy**.
+1. Push this repository to GitHub. Streamlit lists public repos straight away;
+   a private repo needs Streamlit to be granted private-repo access.
+2. On share.streamlit.io, choose **Create app** → **Deploy a public app from
+   GitHub**, then pick the repository, branch `main` and main file `app.py`.
+3. Under **Advanced settings**, choose Python 3.11 or newer (pandas 3 needs at
+   least 3.11) and leave Secrets empty, then **Deploy**.
 
 It installs `requirements.txt` and runs on the committed data, covering every
 area. To share the pipeline view directly, add `?mode=pipeline` to the app's
