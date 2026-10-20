@@ -341,9 +341,10 @@ def comps_source(est, d: dict) -> str:
 def range_chart(est, price: float, c: dict) -> alt.Chart:
     """A strip showing where the agreed price sits against the likely valuation range.
 
-    Blue band = low to high valuation, blue tick = typical (shown in the tile
-    below and on hover), orange line = the agreed price. Only the price and the
-    band's ends are labelled, so labels don't collide even on a phone.
+    Blue band = low to high valuation, blue tick = the estimate, orange line =
+    the agreed price. The price label sits on the top row and the estimate label
+    on the row below it, running away from the price line, so no two labels
+    collide, even on a phone. The band's ends are labelled underneath.
     """
     lo, mid, hi = est.value_p25, est.value_median, est.value_p75
     left, right = min(lo, price), max(hi, price)
@@ -354,37 +355,45 @@ def range_chart(est, price: float, c: dict) -> alt.Chart:
     def at(value):  # position across the strip, 0 to 1
         return (value - start) / (end - start)
 
+    band_top, band_bottom = 38, 58  # pixels from the top; label rows sit above and below
     band = alt.Chart(pd.DataFrame({"lo": [lo], "hi": [hi]})).mark_rect(
         color=c["comps"], opacity=c["band"], cornerRadius=4
     ).encode(
-        x=alt.X("lo:Q", scale=scale, axis=None), x2="hi:Q", y=alt.value(34), y2=alt.value(54),
+        x=alt.X("lo:Q", scale=scale, axis=None), x2="hi:Q", y=alt.value(band_top), y2=alt.value(band_bottom),
         tooltip=[alt.Tooltip("lo:Q", title="Low valuation (AED)", format=",.0f"),
                  alt.Tooltip("hi:Q", title="High valuation (AED)", format=",.0f")],
     )
-    typical_tick = alt.Chart(pd.DataFrame({"v": [mid]})).mark_rule(color=c["comps"], strokeWidth=2).encode(
-        x=alt.X("v:Q", scale=scale, axis=None), y=alt.value(30), y2=alt.value(58),
-        tooltip=[alt.Tooltip("v:Q", title="Typical valuation (AED)", format=",.0f")],
+    estimate_tick = alt.Chart(pd.DataFrame({"v": [mid]})).mark_rule(color=c["comps"], strokeWidth=2).encode(
+        x=alt.X("v:Q", scale=scale, axis=None), y=alt.value(band_top - 3), y2=alt.value(band_bottom + 4),
+        tooltip=[alt.Tooltip("v:Q", title="Estimated valuation (AED)", format=",.0f")],
     )
     price_line = alt.Chart(pd.DataFrame({"v": [price]})).mark_rule(color=c["deal"], strokeWidth=3).encode(
-        x=alt.X("v:Q", scale=scale, axis=None), y=alt.value(22), y2=alt.value(64),
+        x=alt.X("v:Q", scale=scale, axis=None), y=alt.value(20), y2=alt.value(band_bottom + 8),
         tooltip=[alt.Tooltip("v:Q", title="Agreed price (AED)", format=",.0f")],
     )
 
-    def label(value, text, align, y, color, weight="normal"):
+    def label(value, text, align, y, color, weight="normal", dx=0):
         return alt.Chart(pd.DataFrame({"v": [value], "t": [text]})).mark_text(
-            align=align, baseline="bottom" if y < 34 else "top", color=color, fontWeight=weight, fontSize=12,
+            align=align, baseline="bottom" if y < band_top else "top", color=color, fontWeight=weight, fontSize=12,
+            dx=dx,
         ).encode(x=alt.X("v:Q", scale=scale, axis=None), y=alt.value(y), text="t:N")
 
     price_align = "left" if at(price) < 0.25 else "right" if at(price) > 0.75 else "center"
-    labels = [label(price, f"Agreed price {aed_short(price)}", price_align, 18, c["ink"], "bold")]
+    # The estimate label runs away from the price line, a few pixels clear of it, so the
+    # line never crosses the text, even when the price equals the estimate.
+    estimate_align, estimate_dx = ("right", -4) if price >= mid else ("left", 4)
+    labels = [label(price, f"Agreed price {aed_short(price)}", price_align, 16, c["ink"], "bold"),
+              label(mid, f"Estimate {aed_short(mid)}", estimate_align, band_top - 5, c["ink"], dx=estimate_dx)]
+    below = band_bottom + 12
     if at(hi) - at(lo) < 0.55:  # narrow band: one label for the whole range
-        labels.append(label((lo + hi) / 2, f"Likely {aed_short(lo)} to {aed_short(hi)}", "center", 66, c["muted"]))
+        labels.append(label((lo + hi) / 2, f"Likely {aed_short(lo)} to {aed_short(hi)}", "center", below,
+                            c["muted"]))
     else:
-        labels.append(label(lo, f"Low {aed_short(lo)}", "left", 66, c["muted"]))
-        labels.append(label(hi, f"High {aed_short(hi)}", "right", 66, c["muted"]))
+        labels.append(label(lo, f"Low {aed_short(lo)}", "left", below, c["muted"]))
+        labels.append(label(hi, f"High {aed_short(hi)}", "right", below, c["muted"]))
 
-    return (alt.layer(band, typical_tick, price_line, *labels)
-            .properties(height=86)
+    return (alt.layer(band, estimate_tick, price_line, *labels)
+            .properties(height=band_bottom + 30)
             .configure_view(stroke=None))
 
 

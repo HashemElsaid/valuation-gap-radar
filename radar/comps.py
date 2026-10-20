@@ -34,8 +34,6 @@ class Estimate:
     value_p75: float
     spread: float  # (P75 - P25) / median: how much the comps disagree
     confidence: str  # "High", "Medium" or "Low"
-    recent_ppsqm: float | None  # median price per sqm in the last 90 days, if any
-    recent_count: int
 
     @property
     def n_comps(self) -> int:
@@ -114,7 +112,6 @@ def estimate_value(sales, area, property_type, bedrooms, size_sqm, project=None,
     comps = comps.assign(weight=recency_weights(comps["date"], as_of))
     p25, median, p75 = weighted_percentiles(comps["price_per_sqm"], comps["weight"], [0.25, 0.5, 0.75])
     spread = (p75 - p25) / median
-    recent = comps[comps["date"] > as_of - pd.Timedelta(days=config.RECENT_DAYS)]
 
     return Estimate(
         comps=comps.sort_values("date", ascending=False),
@@ -127,8 +124,6 @@ def estimate_value(sales, area, property_type, bedrooms, size_sqm, project=None,
         value_p75=p75 * size_sqm,
         spread=spread,
         confidence=confidence_level(len(comps), spread),
-        recent_ppsqm=recent["price_per_sqm"].median() if len(recent) else None,
-        recent_count=len(recent),
     )
 
 

@@ -91,7 +91,6 @@ SAMPLE_AREAS = 10
 MIN_COMPS = 3  # with fewer comps we don't estimate at all
 MIN_PROJECT_COMPS = 5  # use same-project comps only when there are at least this many
 RECENCY_HALF_LIFE_DAYS = 120  # a sale this many days old counts half as much as today's
-RECENT_DAYS = 90  # window for the "sold in the last 90 days" figure
 
 # Confidence: enough comps, agreeing closely. Spread = (P75 - P25) / median.
 HIGH_CONFIDENCE_COMPS = 10

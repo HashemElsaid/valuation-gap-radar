@@ -53,10 +53,11 @@ rather than P25, median and P75, "similar sales" rather than comps.
   low, each split into the bank's loan, the buyer's cash, any shortfall and the
   fees Sooner pays, with the Form F deposit at stake
 - an **advisor note** in plain words, for example: *"Similar 1-bed apartments
-  in Jumeirah Village Circle typically sold for AED 1,220 per sqft in the last
-  90 days (363 sales). This price works out to AED 1,333 per sqft, 9% above
-  that."*, and **next steps** that fit the risk level (pre-valuation,
-  negotiate, a Form F clause, choose the building)
+  in Jumeirah Village Circle typically sold for AED 1,255 per sqft (1,110
+  sales, recent ones counting most). This price works out to AED 1,333 per
+  sqft, 6% above that."*, and **next steps** that fit the risk level
+  (pre-valuation, negotiate, a Form F clause, choose the building). Every
+  percentage on the page comes from the same estimate, so they always agree
 - three tabs of detail: the **cash breakdown** at the low, typical and high
   valuation (loan, down payment, closing fees, what Sooner pays, shortfall,
   monthly repayment), the **comparable sales** chart and list, and the
@@ -250,7 +251,7 @@ python -m radar.backtest   # optional: re-check accuracy (about 30 seconds)
 
 Commit the new `sales.parquet` and the deployed app picks it up.
 
-Run the 56 tests with `pytest`. They cover the fee and cash maths (checked
+Run the 57 tests with `pytest`. They cover the fee and cash maths (checked
 against Sooner's own published examples and hand-worked figures), comp
 selection and weighting, the ETL rules, the advisor note, batch mode, and smoke
 tests that run each of the app's three views.

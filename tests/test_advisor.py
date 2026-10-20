@@ -46,9 +46,24 @@ def test_high_risk_note_gives_the_cash_at_stake_and_what_to_do():
 def test_low_risk_note_is_reassuring():
     note = note_for(price=700_000, cash_available=150_000)
 
-    assert "0% above" in note
+    assert "in line with that" in note
     assert "unlikely" in note
     assert "Form F" not in note
+
+
+def test_note_gives_the_same_percentage_as_the_headline():
+    # Older sales were dearer, so the last few months alone would give a different
+    # answer from the estimate, which weighs every similar sale by how recent it is.
+    older = make_sales(8).assign(date=pd.Timestamp("2026-04-01"), price_aed=840_000.0, price_per_sqm=12_000.0)
+    sales = pd.concat([older, make_sales(4)], ignore_index=True)
+    est = estimate_value(sales, "JVC", "Apartment", 1, 70)
+    risk = gap_risk(800_000, est)
+    scenarios = scenario_table(800_000, est.valuations, 150_000)
+    note = advisor_note(area="JVC", property_type="Apartment", bedrooms=1, size_sqm=70, price=800_000,
+                        cash_available=150_000, estimate=est, risk=risk, scenarios=scenarios)
+
+    direction = "above" if risk.premium > 0 else "below"
+    assert f"**{abs(risk.premium):.0%} {direction}**" in note
 
 
 def test_a_price_far_below_the_estimate_asks_to_check_the_inputs():

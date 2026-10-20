@@ -1,7 +1,7 @@
 """Plain-English advisor note for one deal, in the words a mortgage adviser would use.
 
 The note has up to four parts:
-1. how the price compares with recent similar sales (per sqft, as Dubai quotes it)
+1. how the price compares with similar sales (per sqft, as Dubai quotes it)
 2. what a low valuation would mean for the buyer's cash
 3. what to do about it (Medium and High risk only; optional)
 4. a warning when the estimate itself is uncertain (Low confidence only)
@@ -48,19 +48,19 @@ def advisor_note(*, area: str, property_type: str, bedrooms: int, size_sqm: floa
         place = area
     paragraphs = []
 
-    # 1. The price against recent sales.
+    # 1. The price against similar sales. It uses the same estimate as the risk
+    # level, so the percentage here always matches the one in the headline.
     deal_psf = per_sqft(price / size_sqm)
-    if estimate.recent_count >= config.MIN_COMPS:
-        ref_psf = per_sqft(estimate.recent_ppsqm)
-        when = f"in the last {config.RECENT_DAYS} days ({estimate.recent_count} sales)"
+    typical_psf = per_sqft(estimate.ppsqm_median)
+    if abs(risk.premium) < 0.005:
+        comparison = "in line with that"
     else:
-        ref_psf = per_sqft(estimate.ppsqm_median)
-        when = f"over the past months ({estimate.n_comps:,} sales, recent ones weighted most)"
-    diff = deal_psf / ref_psf - 1
-    direction = "above" if diff >= 0 else "below"
+        direction = "above" if risk.premium > 0 else "below"
+        comparison = f"**{abs(risk.premium):.0%} {direction}** that"
     paragraphs.append(
-        f"Similar {home} in {place} typically sold for AED {ref_psf:,.0f} per sqft {when}. "
-        f"This price works out to AED {deal_psf:,.0f} per sqft, **{abs(diff):.0%} {direction}** that."
+        f"Similar {home} in {place} typically sold for AED {typical_psf:,.0f} per sqft "
+        f"({estimate.n_comps:,} sales, recent ones counting most). "
+        f"This price works out to AED {deal_psf:,.0f} per sqft, {comparison}."
     )
 
     # 2. What a low valuation would cost the buyer.
