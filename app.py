@@ -14,9 +14,25 @@ in sqm, so the conversion happens here at the edge.
 Colours and fonts are set in .streamlit/config.toml (styled after joinsooner.com).
 """
 
+import importlib
+
 import altair as alt
 import pandas as pd
 import streamlit as st
+
+import radar.advisor
+import radar.batch
+import radar.cash
+import radar.comps
+import radar.config
+import radar.etl
+
+# Streamlit Cloud re-runs the new app.py after a git push but keeps the old
+# radar/ modules in memory, so a push that changed both crashed the live app.
+# Reloading them here, in the order they depend on each other, keeps the code
+# in step. It takes a few milliseconds per run.
+for _module in (radar.config, radar.etl, radar.comps, radar.cash, radar.advisor, radar.batch):
+    importlib.reload(_module)
 
 from radar import config
 from radar.advisor import advisor_note, aed, describe_home, per_sqft

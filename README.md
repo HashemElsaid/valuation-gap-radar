@@ -269,10 +269,10 @@ It installs `requirements.txt` and runs on the committed data, covering every
 area. To share the pipeline view directly, add `?mode=pipeline` to the app's
 URL.
 
-If the live app shows an error right after a push, open **Manage app** (bottom
-right of the app) → **⋮** → **Reboot app** so it reloads all the code.
-`.streamlit/config.toml` sets `fileWatcherType = "poll"` so changed files are
-picked up automatically, which should make that rare.
+After a push, Streamlit Cloud re-runs the new `app.py` but keeps the old
+`radar/` code in memory, so `app.py` reloads the `radar` modules at the start of
+every run. If the live app still shows an error right after a push, open
+**Manage app** (bottom right of the app) → **⋮** → **Reboot app**.
 
 ## Project layout
 
