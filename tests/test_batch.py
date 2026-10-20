@@ -5,7 +5,7 @@ import io
 import pandas as pd
 import pytest
 
-from radar.batch import assess_deals, match_area, match_building, read_deals
+from radar.batch import assess_deals, match_area, match_building, pipeline_summary, read_deals
 
 JVC = "Jumeirah Village Circle"
 
@@ -115,3 +115,21 @@ def test_studio_and_numbers_with_commas_are_understood():
     assert row["bedrooms"] == 0
     assert row["price"] == 700_000
     assert row["risk"] == "Low"
+
+
+def test_summary_counts_only_deals_sooner_can_fund():
+    # Estimate is AED 700,000 for every deal (identical sales), so the low valuation is 700,000 too.
+    deals = deals_csv(HEADER + "\n".join([
+        "P-ok,JVC,,apartment,1,753,800000,200000",    # loan 560k: needs 240k, has 200k -> 40k short
+        "P-fine,JVC,,apartment,1,753,700000,200000",  # no gap, not short
+        "P-big,JVC,,apartment,1,753,6000000,1300000",  # above Sooner's AED 4.5M maximum
+    ]))
+    summary = pipeline_summary(assess_deals(make_sales(12), deals))
+
+    assert summary["deals"] == 3
+    assert summary["eligible"] == 2  # P-big is left out of the risk numbers
+    assert summary["high"] == 1  # P-ok only, although P-big is High risk too
+    assert summary["could_fail"] == 1
+    # About 40,000: 753 sqft is 69.96 sqm, not exactly 70, so the estimate is a touch under 700,000.
+    assert summary["short_total"] == pytest.approx(40_000, rel=0.02)
+    assert summary["deposits_at_risk"] == pytest.approx(80_000)  # 10% of P-ok's 800,000

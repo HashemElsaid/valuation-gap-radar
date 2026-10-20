@@ -174,6 +174,27 @@ def assess_deal(sales: pd.DataFrame, deal: dict, *, ltv: float, fee_rate: float,
     }
 
 
+def pipeline_summary(report: pd.DataFrame) -> dict:
+    """Headline numbers for the pipeline, counting only deals Sooner can fund.
+
+    Deals outside Sooner's price range stay in the report (flagged in notes),
+    but they don't count towards risk or deposits: Sooner wouldn't fund them.
+    """
+    assessed = report[report["risk"] != "Unknown"]
+    eligible = assessed[assessed["price"].between(config.MIN_PRICE_AED, config.MAX_PRICE_AED)]
+    could_fail = eligible[eligible["short_p25"] > 0]  # buyer short if the bank values low
+    return {
+        "deals": len(report),
+        "assessed": len(assessed),
+        "eligible": len(eligible),
+        "high": int((eligible["risk"] == "High").sum()),
+        "medium": int((eligible["risk"] == "Medium").sum()),
+        "could_fail": len(could_fail),
+        "short_total": float(could_fail["short_p25"].sum()),
+        "deposits_at_risk": config.FORM_F_DEPOSIT_SHARE * float(could_fail["price"].sum()),
+    }
+
+
 def assess_deals(sales: pd.DataFrame, deals: pd.DataFrame,
                  ltv: float = config.DEFAULT_LTV,
                  fee_rate: float = config.SOONER_FEE_DEFAULT,

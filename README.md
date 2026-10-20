@@ -75,11 +75,13 @@ checked at once, riskiest first, with a downloadable report.
 
 ![Many deals: summary tiles, every deal sorted by risk, and the message for one deal](docs/screenshots/pipeline.png)
 
-In the example pipeline, 9 of the 10 assessable buyers would be short of cash
-if the bank valued low (P25), including some Low-risk deals, putting about
-**AED 2.05M of Form F deposits** at risk (the page's "Deposits at risk" tile,
-assuming the usual 10% deposit). Buyers who hold only
-the 20% down payment have no buffer for even a small gap.
+In the example pipeline, 7 of the 8 assessable deals in Sooner's price range
+would leave the buyer short of cash if the bank valued low (P25), including
+some Low-risk deals. That puts about **AED 1.38M of Form F deposits** at risk
+(the page's "Deposits at risk" tile, assuming the usual 10% deposit). Buyers
+who hold only the 20% down payment have no buffer for even a small gap. The
+summary counts only deals Sooner can fund; deals outside AED 500k–4.5M stay in
+the table, flagged in Notes.
 
 ## How it works
 
@@ -245,7 +247,7 @@ python -m radar.backtest   # optional: re-check accuracy (about 30 seconds)
 
 Commit the new `sales.parquet` and the deployed app picks it up.
 
-Run the 54 tests with `pytest`. They cover the fee and cash maths (checked
+Run the 55 tests with `pytest`. They cover the fee and cash maths (checked
 against Sooner's own published examples and hand-worked figures), comp
 selection and weighting, the ETL rules, the advisor note, batch mode, and smoke
 tests that run the app's main screens.

@@ -20,7 +20,7 @@ import streamlit as st
 
 from radar import config
 from radar.advisor import advisor_note, aed, describe_home, per_sqft
-from radar.batch import REQUIRED_COLUMNS, assess_deals, read_deals
+from radar.batch import REQUIRED_COLUMNS, assess_deals, pipeline_summary, read_deals
 from radar.cash import check_eligibility, closing_costs, loan_amount, scenario_table
 from radar.comps import estimate_value, find_comps, gap_risk
 from radar.etl import load_sales
@@ -700,21 +700,23 @@ def show_batch(sales: pd.DataFrame, settings: dict) -> None:
         report = assess_deals(sales, deals, **settings)
     assessed = report[report["risk"] != "Unknown"]
 
-    # Summary: what's at stake for Sooner and its buyers
-    short_low = assessed[assessed["short_p25"] > 0]
-    deposits = config.FORM_F_DEPOSIT_SHARE * short_low["price"].sum()
+    # Summary: what's at stake for Sooner and its buyers, counting only deals Sooner can fund
+    s = pipeline_summary(report)
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Deals checked", len(report), border=True, icon=":material/fact_check:")
-    c1.caption(f"{len(assessed)} assessed, {len(report) - len(assessed)} couldn't be (see Notes)")
-    c2.metric("High risk", int((report["risk"] == "High").sum()), border=True, icon=":material/error:")
-    c2.caption(f"Plus {int((report['risk'] == 'Medium').sum())} at Medium risk")
-    c3.metric("Could fail if valued low", len(short_low), border=True, icon=":material/trending_down:",
+    c1.metric("Deals checked", s["deals"], border=True, icon=":material/fact_check:")
+    c1.caption(f"{s['assessed']} assessed, {s['deals'] - s['assessed']} couldn't be (see Notes)")
+    c2.metric("High risk", s["high"], border=True, icon=":material/error:")
+    c2.caption(f"Plus {s['medium']} at Medium risk")
+    c3.metric("Could fail if valued low", s["could_fail"], border=True, icon=":material/trending_down:",
               help="Deals where the buyer would be short of cash if the bank values at the low end of the range.")
-    c3.caption(f"Buyers {aed(short_low['short_p25'].sum())} short in total")
-    c4.metric("Deposits at risk", aed_short(deposits), border=True, icon=":material/savings:",
+    c3.caption(f"Buyers {aed(s['short_total'])} short in total")
+    c4.metric("Deposits at risk", aed_short(s["deposits_at_risk"]), border=True, icon=":material/savings:",
               help=f"The Form F deposits (usually {config.FORM_F_DEPOSIT_SHARE:.0%} of the price) of the buyers "
                    "in those deals. If a deal fails, the buyer can lose it.")
-    c4.caption(f"{config.FORM_F_DEPOSIT_SHARE:.0%} deposits across those {len(short_low)} deals")
+    c4.caption(f"{config.FORM_F_DEPOSIT_SHARE:.0%} deposits across those {s['could_fail']} deals")
+    st.caption(f"Risk and deposit numbers count the {s['eligible']} assessed deals in Sooner's price range "
+               f"(AED {config.MIN_PRICE_AED:,} to {config.MAX_PRICE_AED:,}). Deals outside it stay in the table, "
+               "flagged in Notes.")
 
     # Report, riskiest first
     st.subheader("Every deal, riskiest first")
