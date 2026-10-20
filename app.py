@@ -455,7 +455,8 @@ def who_pays_chart(split: pd.DataFrame, cash: float, c: dict) -> alt.Chart:
     """One bar per scenario: the bank's loan, the buyer's cash, any shortfall, and Sooner's fees.
 
     Scenario names sit above each bar rather than beside it, so the bars use the
-    full width and still read on a phone.
+    full width and still read on a phone. Each segment shows its amount when it
+    is wide enough to hold it; the shortfall is always labelled, above the bar.
     """
     parts = ["Bank", "Buyer", "Shortfall", "Sooner"]
     fills = [c["comps"], c["buyer"], "#d03b3b", "#e9fe0f"]
@@ -490,10 +491,16 @@ def who_pays_chart(split: pd.DataFrame, cash: float, c: dict) -> alt.Chart:
     short_label = alt.Chart(short).mark_text(
         align="right", baseline="bottom", dy=-15, fontSize=12, fontWeight=600, color=c["bad"],
     ).encode(y=y, x=alt.X("end:Q", scale=x_scale, axis=None), text="text:N")
-    # Write other amounts inside their segment only when it's wide enough to hold them, even on a phone.
-    inside = data[(data["amount"] / total > 0.14) & (data["part"] != "Shortfall")]
+    # Every other amount sits inside its segment when the segment is wide enough to hold
+    # it at the chart's real width (Vega's "width"): a laptop shows them all, and a phone
+    # leaves out the narrow ones, such as Sooner's, rather than spill text out of the bar.
+    inside = data[data["part"] != "Shortfall"].assign(
+        share=lambda x: x["amount"] / total,
+        text_px=lambda x: x["label"].str.len() * 6.3 + 8,  # 11px semibold Manrope: ~6.2px a character
+    )
     amounts = alt.Chart(inside).mark_text(fontSize=11, fontWeight=600).encode(
         y=y, x=alt.X("mid:Q", scale=x_scale, axis=None), text="label:N", color=alt.Color("ink:N", scale=None),
+        opacity=alt.condition("datum.share * width >= datum.text_px", alt.value(1), alt.value(0)),
     )
     # A fixed height per row (not for the whole chart) keeps the bars and their names apart.
     return (alt.layer(bars, names, short_label, amounts)
