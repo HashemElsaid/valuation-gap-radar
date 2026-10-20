@@ -9,10 +9,11 @@ for down-valuation risk, and styled after Sooner's site. It's an independent
 demo, not an official Sooner product.
 
 **Live demo: [valuation-gap-radar.streamlit.app](https://valuation-gap-radar.streamlit.app)**
-(or jump straight to the [pipeline report](https://valuation-gap-radar.streamlit.app/?mode=pipeline)).
+(or jump straight to the [pipeline](https://valuation-gap-radar.streamlit.app/?mode=pipeline)
+or the [method](https://valuation-gap-radar.streamlit.app/?mode=method)).
 The app sleeps when unused, so the first visit can take about 30 seconds.
 
-![One deal: high risk of a low valuation, plain-words explanation, next steps and the cash at stake](docs/screenshots/single-deal.png)
+![Deal view: high risk of a low valuation, who pays at each valuation, the advisor note, next steps and the cash breakdown](docs/screenshots/single-deal.png)
 
 ## The problem
 
@@ -35,53 +36,55 @@ cash is at stake?
 
 ## What it does
 
-The app is written so anyone can follow it, including why it matters to the
-business. Each page opens with **"Why this matters"** (Sooner pays the fees,
-not the down payment, so a low valuation lands on the buyer and can sink the
-deal) and a three-step "how this works" strip. It uses everyday words ("likely
-bank valuation", "buyer would be short by", "how sure we are") rather than P25
-or LTV, every input and number has a help tooltip, and a glossary at the bottom
-explains the terms.
+The app has three views, switched at the top of the sidebar. The Deal and
+Pipeline views give the answer first and keep explanations short; the Method
+view holds the detail. Words stay plain: "low, typical and high valuation"
+rather than P25, median and P75, "similar sales" rather than comps.
 
-**One deal.** Enter the home (area, type, bedrooms, building, size) and the
-deal (agreed price, buyer's cash). The page leads with the answer:
+**Deal.** Enter the home (area, type, bedrooms, building, size) and the deal
+(agreed price, buyer's cash). The page shows:
 
-- a **verdict**: the risk of a low valuation (Low, Medium or High, each with its
-  own colour and icon), a one-line headline, the estimate in a sentence, a bar
-  showing where the agreed price sits against the likely valuation range, four
-  key numbers, and a line saying why it's that risk level
-- **Who pays for this home**: one bar for "the bank agrees with the price" and
-  one for "the bank values low", each split into the bank's loan, the buyer's own
-  cash, any shortfall (in red) and the fees Sooner pays. It shows the buyer's
-  part growing when the valuation drops, and the Form F deposit at stake
-- **In plain words**: the advisor note, for example: *"Similar 1-bed apartments
+- a **verdict**: Low, Medium or High risk of a low valuation, a one-line
+  headline, a strip showing where the agreed price sits against the likely
+  valuation range, and four numbers: the estimated valuation, how short the
+  buyer would be at the low valuation, the extra cash needed at the typical
+  valuation, and how sure the estimate is
+- **Who pays**: one bar if the bank values at the price and one if it values
+  low, each split into the bank's loan, the buyer's cash, any shortfall and the
+  fees Sooner pays, with the Form F deposit at stake
+- an **advisor note** in plain words, for example: *"Similar 1-bed apartments
   in Jumeirah Village Circle typically sold for AED 1,220 per sqft in the last
   90 days (363 sales). This price works out to AED 1,333 per sqft, 9% above
-  that."*
-- **What to do next**: a checklist that fits the risk level (pre-valuation,
-  negotiate, a Form F clause, pick the building)
-- three tabs of detail: **cash the buyer needs** if the bank values low, typical
-  or high (loan, down payment, closing fees, what Sooner pays, shortfall,
-  monthly repayment), the **similar homes sold** chart and list, and the
+  that."*, and **next steps** that fit the risk level (pre-valuation,
+  negotiate, a Form F clause, choose the building)
+- three tabs of detail: the **cash breakdown** at the low, typical and high
+  valuation (loan, down payment, closing fees, what Sooner pays, shortfall,
+  monthly repayment), the **comparable sales** chart and list, and the
   **closing fees** line by line, as on Sooner's calculator
 
 Naming the building makes a big difference. The JVC deal above is High risk
 with Low confidence on area-wide sales (1,110 of them, spread ±15%). The same
 deal in Binghatti Amber is Low risk with High confidence: 29 sales within ±5%.
 
-**Many deals.** Switch the sidebar to **Many deals**, upload a CSV of the
-pipeline (or open `?mode=pipeline` to see the example), and get every deal
-checked at once, riskiest first, with a downloadable report.
+**Pipeline.** Upload a CSV export of deals (or open `?mode=pipeline` to see the
+12-deal example) and every deal is checked at once: totals for the deals
+Sooner can fund, every deal sorted by risk, notes on deals outside Sooner's
+range or not assessed, the advisor note for any deal, and a downloadable
+report.
 
-![Many deals: summary tiles, every deal sorted by risk, and the message for one deal](docs/screenshots/pipeline.png)
+![Pipeline view: totals, every deal sorted by risk, notes, and the advisor note for one deal](docs/screenshots/pipeline.png)
 
 In the example pipeline, 7 of the 8 assessable deals in Sooner's price range
 would leave the buyer short of cash if the bank valued low (P25), including
 some Low-risk deals. That puts about **AED 1.38M of Form F deposits** at risk
-(the page's "Deposits at risk" tile, assuming the usual 10% deposit). Buyers
+(the page's "Deposits at risk" figure, assuming the usual 10% deposit). Buyers
 who hold only the 20% down payment have no buffer for even a small gap. The
-summary counts only deals Sooner can fund; deals outside AED 500k–4.5M stay in
-the table, flagged in Notes.
+totals count only deals Sooner can fund; deals outside AED 500k–4.5M stay in
+the table and are listed under Notes.
+
+**Method.** The problem, how the estimate works, the backtest, every
+assumption (read from `radar/config.py`, so the page can't drift from the
+code), the limitations and a glossary.
 
 ## How it works
 
@@ -247,10 +250,10 @@ python -m radar.backtest   # optional: re-check accuracy (about 30 seconds)
 
 Commit the new `sales.parquet` and the deployed app picks it up.
 
-Run the 55 tests with `pytest`. They cover the fee and cash maths (checked
+Run the 56 tests with `pytest`. They cover the fee and cash maths (checked
 against Sooner's own published examples and hand-worked figures), comp
 selection and weighting, the ETL rules, the advisor note, batch mode, and smoke
-tests that run the app's main screens.
+tests that run each of the app's three views.
 
 ## Deploy
 
@@ -266,8 +269,8 @@ copy:
    least 3.11) and leave Secrets empty, then **Deploy**.
 
 It installs `requirements.txt` and runs on the committed data, covering every
-area. To share the pipeline view directly, add `?mode=pipeline` to the app's
-URL.
+area. To link straight to a view, add `?mode=pipeline` or `?mode=method` to the
+app's URL.
 
 After a push, Streamlit Cloud re-runs the new `app.py` but keeps the old
 `radar/` code in memory, so `app.py` reloads the `radar` modules at the start of

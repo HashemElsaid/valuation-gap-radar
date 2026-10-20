@@ -59,7 +59,7 @@ def advisor_note(*, area: str, property_type: str, bedrooms: int, size_sqm: floa
     diff = deal_psf / ref_psf - 1
     direction = "above" if diff >= 0 else "below"
     paragraphs.append(
-        f"Similar {home} in {place} typically sold for **AED {ref_psf:,.0f} per sqft** {when}. "
+        f"Similar {home} in {place} typically sold for AED {ref_psf:,.0f} per sqft {when}. "
         f"This price works out to AED {deal_psf:,.0f} per sqft, **{abs(diff):.0%} {direction}** that."
     )
 
@@ -75,13 +75,13 @@ def advisor_note(*, area: str, property_type: str, bedrooms: int, size_sqm: floa
         if typical["extra_cash_from_gap"] > 0:
             sentences.append(
                 f"If the bank values it at the typical estimate ({aed(typical['valuation'])}), the buyer needs "
-                f"**{aed(typical['extra_cash_from_gap'])} more cash** at completion; if it values at the low end "
-                f"({aed(low['valuation'])}), **{aed(low['extra_cash_from_gap'])} more**."
+                f"{aed(typical['extra_cash_from_gap'])} more cash at completion; if it values at the low end "
+                f"({aed(low['valuation'])}), {aed(low['extra_cash_from_gap'])} more."
             )
         else:
             sentences.append(
                 f"At the typical estimate there is no gap, but if the bank values at the low end "
-                f"({aed(low['valuation'])}) the buyer needs **{aed(low['extra_cash_from_gap'])} more cash** "
+                f"({aed(low['valuation'])}) the buyer needs {aed(low['extra_cash_from_gap'])} more cash "
                 f"at completion."
             )
         if typical["shortfall"] > 0:
@@ -116,7 +116,7 @@ def advisor_note(*, area: str, property_type: str, bedrooms: int, size_sqm: floa
     if estimate.confidence == "Low":
         tip = " Choosing the building would sharpen it." if estimate.basis == "area" else ""
         paragraphs.append(
-            f"We're not very sure here ({estimate.n_comps:,} similar sales, with prices that vary a lot), "
+            f"Confidence is low ({estimate.n_comps:,} similar sales, with prices that vary widely), "
             f"so treat this as a rough guide.{tip}"
         )
 
