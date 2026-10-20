@@ -62,6 +62,18 @@ def test_pipeline_view_reports_every_example_deal():
     assert at.metric[3].label == "Deposits at risk"
 
 
+def test_the_address_follows_the_chosen_view():
+    at = run_app(mode="pipeline")  # e.g. opened from a link to the pipeline
+    at.sidebar.segmented_control[0].set_value("Deal").run()
+
+    assert not at.exception
+    assert "mode" not in at.query_params  # so a refresh, or the plain link, opens the Deal view
+    assert "Who pays" in headings(at)
+
+    at.sidebar.segmented_control[0].set_value("Method").run()
+    assert at.query_params["mode"] == "method"
+
+
 def test_method_view_explains_the_problem_and_the_assumptions():
     at = run_app(mode="method")
 

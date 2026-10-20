@@ -169,11 +169,21 @@ def sidebar_header() -> str:
     sb = st.sidebar
     sb.markdown(f"### Valuation Gap {lime('Radar')}", unsafe_allow_html=True)
     sb.caption("Down-valuation check for Sooner deals")
-    # ?mode=pipeline or ?mode=method in the URL opens that view, e.g. for a shared link.
-    requested = st.query_params.get("mode")
-    default = next((view for view, mode in VIEWS.items() if mode == requested), "Deal")
-    return sb.segmented_control("View", list(VIEWS), default=default, required=True,
+    # ?mode=pipeline or ?mode=method in the URL opens that view, e.g. for a shared link;
+    # no mode opens the Deal view. Only the first run of a session reads it.
+    if "view" not in st.session_state:
+        requested = st.query_params.get("mode")
+        st.session_state.view = next((view for view, mode in VIEWS.items() if mode == requested), "Deal")
+    view = sb.segmented_control("View", list(VIEWS), key="view", required=True,
                                 label_visibility="collapsed", width="stretch")
+    # Keep the URL in step with the view, so a refresh stays on it and the plain link opens Deal.
+    mode = VIEWS[view]
+    if st.query_params.get("mode") != mode:
+        if mode is None:
+            del st.query_params["mode"]
+        else:
+            st.query_params["mode"] = mode
+    return view
 
 
 def deal_inputs(sales: pd.DataFrame) -> dict:
@@ -342,9 +352,11 @@ def range_chart(est, price: float, c: dict) -> alt.Chart:
     """A strip showing where the agreed price sits against the likely valuation range.
 
     Blue band = low to high valuation, blue tick = the estimate, orange line =
-    the agreed price. The price label sits on the top row and the estimate label
-    on the row below it, running away from the price line, so no two labels
-    collide, even on a phone. The band's ends are labelled underneath.
+    the agreed price. The price is labelled above the band and the estimate
+    below it, each centred on its own line, so those two can never overlap.
+    Low and High sit at the band's ends on the row below, but only when the
+    chart is wide enough to fit them beside the estimate label; on a phone the
+    range is in the caption under the strip instead.
     """
     lo, mid, hi = est.value_p25, est.value_median, est.value_p75
     left, right = min(lo, price), max(hi, price)
@@ -355,7 +367,11 @@ def range_chart(est, price: float, c: dict) -> alt.Chart:
     def at(value):  # position across the strip, 0 to 1
         return (value - start) / (end - start)
 
-    band_top, band_bottom = 38, 58  # pixels from the top; label rows sit above and below
+    def align_at(value):  # a label near an edge grows inwards, so it stays inside the chart
+        return "left" if at(value) < 0.25 else "right" if at(value) > 0.75 else "center"
+
+    above, band_top, band_bottom = 16, 26, 46  # pixels from the top
+    below = band_bottom + 8
     band = alt.Chart(pd.DataFrame({"lo": [lo], "hi": [hi]})).mark_rect(
         color=c["comps"], opacity=c["band"], cornerRadius=4
     ).encode(
@@ -367,33 +383,42 @@ def range_chart(est, price: float, c: dict) -> alt.Chart:
         x=alt.X("v:Q", scale=scale, axis=None), y=alt.value(band_top - 3), y2=alt.value(band_bottom + 4),
         tooltip=[alt.Tooltip("v:Q", title="Estimated valuation (AED)", format=",.0f")],
     )
+    # The price line stops short of the labels under the band, so it never crosses one.
     price_line = alt.Chart(pd.DataFrame({"v": [price]})).mark_rule(color=c["deal"], strokeWidth=3).encode(
-        x=alt.X("v:Q", scale=scale, axis=None), y=alt.value(20), y2=alt.value(band_bottom + 8),
+        x=alt.X("v:Q", scale=scale, axis=None), y=alt.value(above + 4), y2=alt.value(band_bottom + 3),
         tooltip=[alt.Tooltip("v:Q", title="Agreed price (AED)", format=",.0f")],
     )
 
-    def label(value, text, align, y, color, weight="normal", dx=0):
+    def label(value, text, align, y, color, weight="normal", opacity=1):
         return alt.Chart(pd.DataFrame({"v": [value], "t": [text]})).mark_text(
             align=align, baseline="bottom" if y < band_top else "top", color=color, fontWeight=weight, fontSize=12,
-            dx=dx,
+            opacity=opacity,
         ).encode(x=alt.X("v:Q", scale=scale, axis=None), y=alt.value(y), text="t:N")
 
-    price_align = "left" if at(price) < 0.25 else "right" if at(price) > 0.75 else "center"
-    # The estimate label runs away from the price line, a few pixels clear of it, so the
-    # line never crosses the text, even when the price equals the estimate.
-    estimate_align, estimate_dx = ("right", -4) if price >= mid else ("left", 4)
-    labels = [label(price, f"Agreed price {aed_short(price)}", price_align, 16, c["ink"], "bold"),
-              label(mid, f"Estimate {aed_short(mid)}", estimate_align, band_top - 5, c["ink"], dx=estimate_dx)]
-    below = band_bottom + 12
-    if at(hi) - at(lo) < 0.55:  # narrow band: one label for the whole range
-        labels.append(label((lo + hi) / 2, f"Likely {aed_short(lo)} to {aed_short(hi)}", "center", below,
-                            c["muted"]))
-    else:
-        labels.append(label(lo, f"Low {aed_short(lo)}", "left", below, c["muted"]))
-        labels.append(label(hi, f"High {aed_short(hi)}", "right", below, c["muted"]))
+    def text_px(text):  # rough width of a 12px label; Manrope averages about 6.2px a character
+        return len(text) * 6.5
+
+    estimate_text, low_text, high_text = (f"Estimate {aed_short(mid)}", f"Low {aed_short(lo)}",
+                                          f"High {aed_short(hi)}")
+    estimate_align = align_at(mid)
+    # How far the estimate label reaches left and right of its tick, in pixels.
+    reach_left = {"left": 0, "center": text_px(estimate_text) / 2, "right": text_px(estimate_text)}[estimate_align]
+    reach_right = text_px(estimate_text) - reach_left
+    # Vega knows the chart's real width ("width" here), so Low and High appear only
+    # when both fit beside the estimate label with a 12px gap.
+    ends_fit = alt.ExprRef(
+        f"({at(mid) - at(lo):.4f} * width >= {reach_left + text_px(low_text) + 12:.0f}) && "
+        f"({at(hi) - at(mid):.4f} * width >= {reach_right + text_px(high_text) + 12:.0f}) ? 1 : 0"
+    )
+    labels = [
+        label(price, f"Agreed price {aed_short(price)}", align_at(price), above, c["ink"], "bold"),
+        label(mid, estimate_text, estimate_align, below, c["ink"]),
+        label(lo, low_text, "left", below, c["muted"], opacity=ends_fit),
+        label(hi, high_text, "right", below, c["muted"], opacity=ends_fit),
+    ]
 
     return (alt.layer(band, estimate_tick, price_line, *labels)
-            .properties(height=band_bottom + 30)
+            .properties(height=below + 16)
             .configure_view(stroke=None))
 
 
